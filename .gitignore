@@ -1,0 +1,104 @@
+# WordPress Plugin - Woo Prices Dynamics Makito
+# Archivos y directorios que NO deben subirse a GitHub
+
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Archivos de editores e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log
+*.cache
+*.bak
+*.backup
+*.old
+
+# Archivos de compresión
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Archivos de configuración local
+wp-config-local.php
+.env
+.env.local
+.env.*.local
+
+# Archivos de dependencias (si se usan)
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+yarn.lock
+
+# Archivos de build/dist
+dist/
+build/
+*.min.js
+*.min.css
+
+# Archivos de testing
+phpunit.xml
+tests/
+test/
+*.test.php
+
+# Archivos de documentación temporal
+TODO.md
+NOTES.md
+*.draft.md
+
+# Archivos de base de datos
+*.sql
+*.sqlite
+*.db
+
+# Archivos de logs (si se generan localmente)
+logs/
+*.log
+
+# Archivos de traducción compilados (se generan automáticamente)
+languages/*.mo
+languages/*.pot
+
+# Archivos de WordPress (si están en el mismo directorio)
+wp-admin/
+wp-includes/
+wp-content/
+wp-config.php
+.htaccess
+
+# Archivos de backup
+*.backup
+backup/
+backups/
+
+# Archivos de versiones antiguas
+*.orig
+*.rej
+
+
+
+
+
