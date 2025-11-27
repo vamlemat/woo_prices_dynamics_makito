@@ -21,6 +21,26 @@ class WPDM_Variation_Table {
 	 * Opción para el tamaño del círculo de color (en píxeles).
 	 */
 	const OPTION_COLOR_SWATCH_SIZE = 'wpdm_color_swatch_size';
+	
+	/**
+	 * Opción para el umbral de stock bajo.
+	 */
+	const OPTION_STOCK_THRESHOLD = 'wpdm_stock_threshold';
+	
+	/**
+	 * Opción para el color de stock alto.
+	 */
+	const OPTION_STOCK_HIGH_COLOR = 'wpdm_stock_high_color';
+	
+	/**
+	 * Opción para el color de stock bajo.
+	 */
+	const OPTION_STOCK_LOW_COLOR = 'wpdm_stock_low_color';
+	
+	/**
+	 * Opción para el color de sin stock.
+	 */
+	const OPTION_STOCK_NONE_COLOR = 'wpdm_stock_none_color';
 
 	/**
 	 * Flag para controlar si el script ya se ha cargado.
@@ -314,17 +334,62 @@ class WPDM_Variation_Table {
 									$is_available = $variation_id > 0;
 								?>
 									<td class="wpdm-table-cell">
-										<?php if ( $is_available ) : ?>
-											<input 
-												type="number" 
-												class="wpdm-table-qty-input" 
-												data-row="<?php echo esc_attr( $row_value ); ?>"
-												data-col="<?php echo esc_attr( $col_value ); ?>"
-												data-variation-id="<?php echo esc_attr( $variation_id ); ?>"
-												min="0" 
-												step="1" 
-												value="0" 
-											/>
+										<?php if ( $is_available ) : 
+											// Obtener el stock de la variación
+											$variation_obj = wc_get_product( $variation_id );
+											$stock_quantity = '';
+											$stock_class = '';
+											$stock_text = '';
+											// Obtener umbral desde configuración
+											$stock_threshold = absint( get_option( self::OPTION_STOCK_THRESHOLD, 50 ) );
+											
+											if ( $variation_obj ) {
+												if ( $variation_obj->managing_stock() ) {
+													$stock_qty = $variation_obj->get_stock_quantity();
+													$stock_quantity = $stock_qty !== null ? absint( $stock_qty ) : 0;
+													
+													// Determinar clase y texto según el stock
+													if ( $stock_quantity === 0 ) {
+														$stock_class = 'wpdm-stock-none';
+														$stock_text = esc_html__( 'NO', 'woo-prices-dynamics-makito' );
+													} elseif ( $stock_quantity <= $stock_threshold ) {
+														$stock_class = 'wpdm-stock-low';
+														/* translators: %d: stock quantity */
+														$stock_text = sprintf( esc_html__( 'Stock: %d', 'woo-prices-dynamics-makito' ), $stock_quantity );
+													} else {
+														$stock_class = 'wpdm-stock-high';
+														/* translators: %d: stock quantity */
+														$stock_text = sprintf( esc_html__( 'Stock: %d', 'woo-prices-dynamics-makito' ), $stock_quantity );
+													}
+												} elseif ( $variation_obj->get_stock_status() === 'instock' ) {
+													// Si no gestiona stock pero está en stock, mostrar como disponible
+													$stock_quantity = '∞';
+													$stock_class = 'wpdm-stock-high';
+													$stock_text = esc_html__( 'Stock: ∞', 'woo-prices-dynamics-makito' );
+												} else {
+													$stock_quantity = 0;
+													$stock_class = 'wpdm-stock-none';
+													$stock_text = esc_html__( 'NO', 'woo-prices-dynamics-makito' );
+												}
+											}
+										?>
+											<div class="wpdm-cell-content">
+												<input 
+													type="number" 
+													class="wpdm-table-qty-input" 
+													data-row="<?php echo esc_attr( $row_value ); ?>"
+													data-col="<?php echo esc_attr( $col_value ); ?>"
+													data-variation-id="<?php echo esc_attr( $variation_id ); ?>"
+													min="0" 
+													step="1" 
+													value="0" 
+												/>
+												<?php if ( $stock_text !== '' ) : ?>
+													<span class="wpdm-stock-info <?php echo esc_attr( $stock_class ); ?>">
+														<?php echo $stock_text; ?>
+													</span>
+												<?php endif; ?>
+											</div>
 										<?php else : ?>
 											<span class="wpdm-table-unavailable">—</span>
 										<?php endif; ?>
@@ -575,6 +640,13 @@ class WPDM_Variation_Table {
 				min-width: 90px;
 			}
 			
+			.wpdm-variation-table .wpdm-cell-content {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 4px;
+			}
+			
 			.wpdm-variation-table .wpdm-table-qty-input {
 				width: 70px;
 				padding: 8px;
@@ -595,6 +667,27 @@ class WPDM_Variation_Table {
 			
 			.wpdm-variation-table .wpdm-table-qty-input:invalid {
 				border-color: #dc3545;
+			}
+			
+			.wpdm-variation-table .wpdm-stock-info {
+				font-size: 0.65em;
+				text-align: center;
+				margin-top: 2px;
+				line-height: 1.2;
+				font-weight: 500;
+			}
+			
+			.wpdm-variation-table .wpdm-stock-info.wpdm-stock-high {
+				color: <?php echo esc_attr( get_option( self::OPTION_STOCK_HIGH_COLOR, '#28a745' ) ); ?>;
+			}
+			
+			.wpdm-variation-table .wpdm-stock-info.wpdm-stock-low {
+				color: <?php echo esc_attr( get_option( self::OPTION_STOCK_LOW_COLOR, '#ff8c00' ) ); ?>;
+			}
+			
+			.wpdm-variation-table .wpdm-stock-info.wpdm-stock-none {
+				color: <?php echo esc_attr( get_option( self::OPTION_STOCK_NONE_COLOR, '#dc3545' ) ); ?>;
+				font-weight: 600;
 			}
 			
 			.wpdm-variation-table .wpdm-table-unavailable {

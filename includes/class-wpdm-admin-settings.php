@@ -87,6 +87,79 @@ class WPDM_Admin_Settings {
 			'wpdm-wooprices-settings',
 			'wpdm_wooprices_main_section'
 		);
+		
+		// Registrar opciones para configuración de stock
+		register_setting(
+			'wpdm_wooprices_settings',
+			WPDM_Variation_Table::OPTION_STOCK_THRESHOLD,
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_stock_threshold' ),
+				'default'           => 50,
+			)
+		);
+		
+		add_settings_field(
+			WPDM_Variation_Table::OPTION_STOCK_THRESHOLD,
+			__( 'Umbral de stock bajo', 'woo-prices-dynamics-makito' ),
+			array( __CLASS__, 'render_stock_threshold_field' ),
+			'wpdm-wooprices-settings',
+			'wpdm_wooprices_main_section'
+		);
+		
+		register_setting(
+			'wpdm_wooprices_settings',
+			WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_color' ),
+				'default'           => '#28a745',
+			)
+		);
+		
+		add_settings_field(
+			WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR,
+			__( 'Color para stock alto', 'woo-prices-dynamics-makito' ),
+			array( __CLASS__, 'render_stock_high_color_field' ),
+			'wpdm-wooprices-settings',
+			'wpdm_wooprices_main_section'
+		);
+		
+		register_setting(
+			'wpdm_wooprices_settings',
+			WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_color' ),
+				'default'           => '#ff8c00',
+			)
+		);
+		
+		add_settings_field(
+			WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR,
+			__( 'Color para stock bajo', 'woo-prices-dynamics-makito' ),
+			array( __CLASS__, 'render_stock_low_color_field' ),
+			'wpdm-wooprices-settings',
+			'wpdm_wooprices_main_section'
+		);
+		
+		register_setting(
+			'wpdm_wooprices_settings',
+			WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_color' ),
+				'default'           => '#dc3545',
+			)
+		);
+		
+		add_settings_field(
+			WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR,
+			__( 'Color para sin stock', 'woo-prices-dynamics-makito' ),
+			array( __CLASS__, 'render_stock_none_color_field' ),
+			'wpdm-wooprices-settings',
+			'wpdm_wooprices_main_section'
+		);
 	}
 
 	/**
@@ -116,6 +189,41 @@ class WPDM_Admin_Settings {
 			$value = 100;
 		}
 		return $value;
+	}
+	
+	/**
+	 * Sanitizar umbral de stock.
+	 *
+	 * @param mixed $value Valor enviado.
+	 *
+	 * @return int
+	 */
+	public static function sanitize_stock_threshold( $value ) {
+		$value = absint( $value );
+		// Limitar entre 1 y 1000
+		if ( $value < 1 ) {
+			$value = 1;
+		} elseif ( $value > 1000 ) {
+			$value = 1000;
+		}
+		return $value;
+	}
+	
+	/**
+	 * Sanitizar color hexadecimal.
+	 *
+	 * @param mixed $value Valor enviado.
+	 *
+	 * @return string
+	 */
+	public static function sanitize_color( $value ) {
+		$value = sanitize_text_field( $value );
+		// Validar formato hexadecimal
+		if ( preg_match( '/^#[0-9A-Fa-f]{6}$/', $value ) ) {
+			return $value;
+		}
+		// Si no es válido, devolver el valor por defecto según el campo
+		return '#28a745'; // Verde por defecto
 	}
 
 	/**
@@ -187,6 +295,95 @@ class WPDM_Admin_Settings {
 			   style="width: 80px;" />
 		<span class="description">
 			<?php esc_html_e( 'Tamaño en píxeles del círculo de color/imagen en la tabla de variaciones (mínimo: 20px, máximo: 100px). Valor por defecto: 36px.', 'woo-prices-dynamics-makito' ); ?>
+		</span>
+		<?php
+	}
+	
+	/**
+	 * Campo: umbral de stock bajo.
+	 */
+	public static function render_stock_threshold_field() {
+		$value = absint( get_option( WPDM_Variation_Table::OPTION_STOCK_THRESHOLD, 50 ) );
+		?>
+		<input type="number"
+			   id="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_THRESHOLD ); ?>"
+			   name="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_THRESHOLD ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   min="1"
+			   max="1000"
+			   step="1"
+			   style="width: 80px;" />
+		<span class="description">
+			<?php esc_html_e( 'Cantidad máxima de unidades para considerar stock bajo. Valores iguales o menores mostrarán el color de stock bajo. Valor por defecto: 50.', 'woo-prices-dynamics-makito' ); ?>
+		</span>
+		<?php
+	}
+	
+	/**
+	 * Campo: color para stock alto.
+	 */
+	public static function render_stock_high_color_field() {
+		$value = get_option( WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR, '#28a745' );
+		?>
+		<input type="color"
+			   id="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR ); ?>"
+			   name="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   style="width: 80px; height: 35px; vertical-align: middle;" />
+		<input type="text"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   onchange="document.getElementById('<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_HIGH_COLOR ); ?>').value = this.value"
+			   pattern="^#[0-9A-Fa-f]{6}$"
+			   placeholder="#28a745"
+			   style="width: 100px; margin-left: 10px;" />
+		<span class="description">
+			<?php esc_html_e( 'Color para mostrar cuando hay mucho stock (por encima del umbral). Valor por defecto: #28a745 (verde).', 'woo-prices-dynamics-makito' ); ?>
+		</span>
+		<?php
+	}
+	
+	/**
+	 * Campo: color para stock bajo.
+	 */
+	public static function render_stock_low_color_field() {
+		$value = get_option( WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR, '#ff8c00' );
+		?>
+		<input type="color"
+			   id="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR ); ?>"
+			   name="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   style="width: 80px; height: 35px; vertical-align: middle;" />
+		<input type="text"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   onchange="document.getElementById('<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_LOW_COLOR ); ?>').value = this.value"
+			   pattern="^#[0-9A-Fa-f]{6}$"
+			   placeholder="#ff8c00"
+			   style="width: 100px; margin-left: 10px;" />
+		<span class="description">
+			<?php esc_html_e( 'Color para mostrar cuando hay poco stock (igual o menor al umbral). Valor por defecto: #ff8c00 (naranja).', 'woo-prices-dynamics-makito' ); ?>
+		</span>
+		<?php
+	}
+	
+	/**
+	 * Campo: color para sin stock.
+	 */
+	public static function render_stock_none_color_field() {
+		$value = get_option( WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR, '#dc3545' );
+		?>
+		<input type="color"
+			   id="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR ); ?>"
+			   name="<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   style="width: 80px; height: 35px; vertical-align: middle;" />
+		<input type="text"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   onchange="document.getElementById('<?php echo esc_attr( WPDM_Variation_Table::OPTION_STOCK_NONE_COLOR ); ?>').value = this.value"
+			   pattern="^#[0-9A-Fa-f]{6}$"
+			   placeholder="#dc3545"
+			   style="width: 100px; margin-left: 10px;" />
+		<span class="description">
+			<?php esc_html_e( 'Color para mostrar cuando no hay stock (0 unidades). Valor por defecto: #dc3545 (rojo).', 'woo-prices-dynamics-makito' ); ?>
 		</span>
 		<?php
 	}

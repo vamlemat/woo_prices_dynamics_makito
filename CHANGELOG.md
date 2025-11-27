@@ -5,6 +5,80 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.0] - 2025-01-XX
+
+### ✨ Nuevas Características
+
+- **Panel de configuración para umbrales y colores de stock:**
+  - Nueva sección en el panel de administración para personalizar la visualización de stock
+  - **Umbral de stock bajo:** Configurable desde 1 a 1000 unidades (por defecto: 50)
+  - **Color para stock alto:** Selector de color personalizable (por defecto: #28a745 - verde)
+  - **Color para stock bajo:** Selector de color personalizable (por defecto: #ff8c00 - naranja)
+  - **Color para sin stock:** Selector de color personalizable (por defecto: #dc3545 - rojo)
+  - Cada campo incluye un selector de color visual y un campo de texto para valores hexadecimales
+  - Validación de colores en formato hexadecimal (#RRGGBB)
+
+### 🔧 Mejoras Técnicas
+
+- **Nuevas constantes de opciones:**
+  - `OPTION_STOCK_THRESHOLD`: Umbral de stock bajo
+  - `OPTION_STOCK_HIGH_COLOR`: Color para stock alto
+  - `OPTION_STOCK_LOW_COLOR`: Color para stock bajo
+  - `OPTION_STOCK_NONE_COLOR`: Color para sin stock
+
+- **Funciones de sanitización:**
+  - `sanitize_stock_threshold()`: Valida y limita el umbral entre 1 y 1000
+  - `sanitize_color()`: Valida formato hexadecimal de colores
+
+- **Integración dinámica:**
+  - Los colores se aplican dinámicamente desde las opciones de configuración
+  - El umbral se lee desde la configuración en tiempo de ejecución
+  - Valores por defecto si no están configurados
+
+---
+
+## [1.3.9] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Sistema de colores para indicar nivel de stock:**
+  - **Verde** (#28a745): Para mucho stock (>50 unidades) - indica disponibilidad alta
+  - **Naranja** (#ff8c00): Para poco stock (≤50 unidades) - indica disponibilidad limitada
+  - **Rojo** (#dc3545): Para sin stock (0 unidades) - muestra "NO" en lugar de "Stock: 0"
+  - Umbral configurable: 50 unidades (puede ajustarse en el código)
+
+### 🔧 Mejoras Técnicas
+
+- **Mejora en la visualización de stock:**
+  - Cuando no hay stock, muestra "NO" en lugar de "Stock: 0"
+  - Clases CSS dinámicas según el nivel de stock: `wpdm-stock-high`, `wpdm-stock-low`, `wpdm-stock-none`
+  - Texto más visible con font-weight ajustado según el estado
+  - Mejor feedback visual para el cliente sobre la disponibilidad
+
+---
+
+## [1.3.8] - 2025-01-XX
+
+### ✨ Nuevas Características
+
+- **Visualización de stock en la tabla de variaciones:**
+  - Muestra el stock disponible de cada variación debajo del input de cantidad
+  - Formato: "Stock: xxxx" en texto pequeño y centrado
+  - Maneja diferentes estados de stock:
+    - Stock gestionado: muestra la cantidad exacta
+    - Stock ilimitado: muestra "Stock: ∞"
+    - Sin stock: muestra "Stock: 0"
+  - Información visible para que el cliente sepa cuánto stock hay disponible en cada momento
+
+### 🎨 Mejoras de Diseño
+
+- **Mejora en la presentación de celdas:**
+  - Layout vertical mejorado con el input y el stock apilados
+  - Texto de stock en tamaño 0.65em para discreción
+  - Centrado y alineado correctamente
+
+---
+
 ## [1.3.7] - 2025-01-XX
 
 ### 🎨 Mejoras de Diseño
