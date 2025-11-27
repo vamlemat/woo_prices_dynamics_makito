@@ -929,6 +929,16 @@ class WPDM_Variation_Table {
 					width: 100%;
 				}
 			}
+			
+			/* Ocultar formulario estándar de WooCommerce cuando la tabla personalizada está activa */
+			.wpdm-variation-table-wrapper ~ .single_variation_wrap,
+			.wpdm-variation-table-wrapper ~ .variations_button,
+			.wpdm-variation-table-wrapper ~ form .single_variation_wrap,
+			.wpdm-variation-table-wrapper ~ form .variations_button,
+			form.variations_form .single_variation_wrap,
+			form.variations_form .variations_button {
+				display: none !important;
+			}
 		</style>
 		<?php
 		
@@ -1956,6 +1966,19 @@ class WPDM_Variation_Table {
 			});
 
 		})(jQuery);
+		
+		// Ocultar formulario estándar de WooCommerce cuando existe la tabla personalizada
+		jQuery(document).ready(function($) {
+			if ($('.wpdm-variation-table-wrapper').length > 0) {
+				// Ocultar el formulario estándar de variaciones
+				$('.single_variation_wrap').hide();
+				$('.variations_button').hide();
+				$('.woocommerce-variation-add-to-cart').hide();
+				
+				// También ocultar si está dentro del formulario
+				$('form.variations_form').find('.single_variation_wrap, .variations_button, .woocommerce-variation-add-to-cart').hide();
+			}
+		});
 		</script>
 		<?php
 	}

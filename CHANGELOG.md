@@ -5,6 +5,18 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.1] - 2025-01-XX
+
+### 🐛 Correcciones
+
+- **Ocultación del formulario estándar de WooCommerce:**
+  - El formulario estándar de variaciones de WooCommerce ahora se oculta automáticamente cuando la tabla personalizada está activa
+  - Evita confusión al tener dos formas de añadir productos al carrito
+  - Implementado con CSS y JavaScript para máxima compatibilidad
+  - Elementos ocultados: `.single_variation_wrap`, `.variations_button`, `.woocommerce-variation-add-to-cart`
+
+---
+
 ## [1.4.0] - 2025-01-XX
 
 ### ✨ Nuevas Características
