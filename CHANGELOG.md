@@ -5,6 +5,136 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.3.7] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Mejora significativa en el mapeo y visualización de colores:**
+  - Limpieza mejorada de nombres de colores con prefijos y modificadores
+  - Soporte para colores compuestos: "azul claro", "gris oscuro", "marino oscuro", "verde botella", etc.
+  - Capitalización correcta de nombres de colores (primera letra mayúscula, resto según corresponda)
+  - Manejo de colores combinados con barra (ej: "naranja/azul")
+
+### 🔧 Mejoras Técnicas
+
+- **Nueva función `capitalize_color_name()`:**
+  - Capitaliza correctamente nombres de colores simples y compuestos
+  - Maneja colores con barras (ej: "Naranja/Azul")
+  - Capitaliza cada palabra correctamente
+
+- **Función `clean_color_name()` mejorada:**
+  - Detecta y limpia patrones complejos: "AZC-AZUL CLARO" → "Azul Claro"
+  - Maneja: "GROS-GRIS OSCURO" → "Gris Oscuro"
+  - Maneja: "MROS-MARINO OSCURO" → "Marino Oscuro"
+  - Maneja: "VEB-VERDE BOTELLA" → "Verde Botella"
+  - Maneja: "NARA-NARANJA/AZUL" → "Naranja/Azul"
+
+- **Mapeo de colores expandido:**
+  - Añadidos colores compuestos: "gris oscuro", "marino oscuro", "verde botella", "dorado"
+  - Soporte para colores combinados: "naranja/azul"
+  - Búsqueda mejorada priorizando colores compuestos sobre simples
+
+---
+
+## [1.3.6] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Tamaño de fuente del nombre del color reducido:**
+  - Tamaño de fuente reducido de 0.85em a 0.70em para mejor proporción visual
+  - El nombre del color ahora es más discreto, dando más protagonismo a la imagen/swatch
+
+### 🔧 Mejoras Técnicas
+
+- **Limpieza automática de nombres de colores:**
+  - Nueva función `clean_color_name()` que elimina prefijos y duplicados
+  - Los nombres de colores ahora se muestran limpios:
+    - "azul-azul" → "azul"
+    - "bla-blanco" → "blanco"
+    - "neg-negro" → "negro"
+    - "ro-rojo" → "rojo"
+  - Detecta y limpia múltiples patrones: prefijo-color, color-color, etc.
+  - Primera letra en mayúscula para mejor presentación
+
+---
+
+## [1.3.5] - 2025-01-XX
+
+### ✨ Nuevas Características
+
+- **Configuración del tamaño del círculo de color:**
+  - Nueva opción en el menú de configuración para personalizar el tamaño del círculo de color/imagen
+  - Rango configurable: 20px a 100px
+  - Valor por defecto: 36px (reducido desde 48px)
+  - El tamaño se aplica tanto a imágenes como a swatches de color
+
+### 🎨 Mejoras de Diseño
+
+- **Tamaño por defecto reducido:**
+  - Tamaño del círculo de color reducido de 48px a 36px por defecto
+  - Mejor proporción visual en la tabla de variaciones
+  - Más espacio para el texto del nombre del color
+
+---
+
+## [1.3.4] - 2025-01-XX
+
+### 🔄 Cambios Estructurales
+
+- **Inversión de estructura de la tabla de variaciones:**
+  - Los colores ahora se muestran en las **filas** (vertical) en lugar de las columnas
+  - Las tallas ahora se muestran en las **columnas** (horizontal)
+  - Esto permite manejar productos con muchos colores (ej: 40 colores) sin que la tabla sea demasiado ancha
+  - Las imágenes de colores se muestran ahora en las filas junto al nombre del color
+  - Mejor experiencia de usuario para productos con muchas variaciones de color
+
+### 🎨 Mejoras de Diseño
+
+- **Ajustes de estilo para la nueva estructura:**
+  - Imágenes de colores en filas con layout horizontal (imagen + texto)
+  - Ancho mínimo aumentado para las filas de colores (180px)
+  - Mejor alineación y espaciado en las filas de colores
+
+---
+
+## [1.3.3] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Mejora en la visualización de imágenes y colores:**
+  - Imágenes de colores aumentadas de 32px a 48px para mayor visibilidad
+  - Texto del nombre del color reducido a 0.65em para dar más prioridad a la imagen
+  - Mejores sombras y bordes en imágenes y swatches de color
+  - Efectos hover suaves en imágenes y swatches
+  - Mejor espaciado y padding en los headers de colores
+  - Jerarquía visual mejorada: imagen más prominente, texto más discreto
+
+---
+
+## [1.3.2] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Mejora en la visualización de colores en la tabla de variaciones:**
+  - Detección automática de `pa_color` como atributo de columna
+  - Imágenes de variaciones mostradas en las columnas de colores (no en las filas de tallas)
+  - Mejora en la búsqueda de imágenes: prioriza imagen de variación, luego galería, luego producto padre
+  - Color swatch genérico mejorado cuando no hay imagen disponible
+
+### 🔧 Mejoras Técnicas
+
+- **Detección mejorada de colores:**
+  - Búsqueda de nombres de colores dentro de slugs con prefijos/sufijos (ej: "bl-blanco-br" detecta "blanco")
+  - Priorización de coincidencias más largas y específicas en el mapeo de colores
+  - Extracción inteligente del nombre del color desde slugs complejos
+
+- **Búsqueda de imágenes optimizada:**
+  - Búsqueda específica en variaciones con el color correspondiente
+  - Verificación de que el atributo de columna sea `pa_color` antes de buscar imágenes
+  - Fallback a imagen del producto padre si la variación no tiene imagen
+
+---
+
 ## [1.3.1] - 2025-01-XX
 
 ### 🎨 Mejoras de Diseño

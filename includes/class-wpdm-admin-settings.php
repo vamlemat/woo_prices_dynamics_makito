@@ -68,6 +68,25 @@ class WPDM_Admin_Settings {
 			'wpdm-wooprices-settings',
 			'wpdm_wooprices_main_section'
 		);
+		
+		// Registrar opción para tamaño del círculo de color
+		register_setting(
+			'wpdm_wooprices_settings',
+			WPDM_Variation_Table::OPTION_COLOR_SWATCH_SIZE,
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_swatch_size' ),
+				'default'           => 36,
+			)
+		);
+		
+		add_settings_field(
+			WPDM_Variation_Table::OPTION_COLOR_SWATCH_SIZE,
+			__( 'Tamaño del círculo de color (px)', 'woo-prices-dynamics-makito' ),
+			array( __CLASS__, 'render_color_swatch_size_field' ),
+			'wpdm-wooprices-settings',
+			'wpdm_wooprices_main_section'
+		);
 	}
 
 	/**
@@ -79,6 +98,24 @@ class WPDM_Admin_Settings {
 	 */
 	public static function sanitize_checkbox( $value ) {
 		return (bool) $value;
+	}
+	
+	/**
+	 * Sanitizar tamaño del círculo de color.
+	 *
+	 * @param mixed $value Valor enviado.
+	 *
+	 * @return int
+	 */
+	public static function sanitize_swatch_size( $value ) {
+		$value = absint( $value );
+		// Limitar entre 20px y 100px
+		if ( $value < 20 ) {
+			$value = 20;
+		} elseif ( $value > 100 ) {
+			$value = 100;
+		}
+		return $value;
 	}
 
 	/**
@@ -131,6 +168,26 @@ class WPDM_Admin_Settings {
 				   value="1" <?php checked( $value ); ?> />
 			<?php esc_html_e( 'Si se activa, se mostrará una tabla interactiva (colores x tallas) para seleccionar cantidades. El precio se calculará según la suma total de todas las variaciones seleccionadas.', 'woo-prices-dynamics-makito' ); ?>
 		</label>
+		<?php
+	}
+	
+	/**
+	 * Campo: tamaño del círculo de color.
+	 */
+	public static function render_color_swatch_size_field() {
+		$value = absint( get_option( WPDM_Variation_Table::OPTION_COLOR_SWATCH_SIZE, 36 ) );
+		?>
+		<input type="number"
+			   id="<?php echo esc_attr( WPDM_Variation_Table::OPTION_COLOR_SWATCH_SIZE ); ?>"
+			   name="<?php echo esc_attr( WPDM_Variation_Table::OPTION_COLOR_SWATCH_SIZE ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   min="20"
+			   max="100"
+			   step="1"
+			   style="width: 80px;" />
+		<span class="description">
+			<?php esc_html_e( 'Tamaño en píxeles del círculo de color/imagen en la tabla de variaciones (mínimo: 20px, máximo: 100px). Valor por defecto: 36px.', 'woo-prices-dynamics-makito' ); ?>
+		</span>
 		<?php
 	}
 

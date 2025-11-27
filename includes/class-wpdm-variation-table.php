@@ -16,6 +16,11 @@ class WPDM_Variation_Table {
 	 * Opción para activar/desactivar la tabla de variaciones.
 	 */
 	const OPTION_ENABLED = 'wpdm_variation_table_enabled';
+	
+	/**
+	 * Opción para el tamaño del círculo de color (en píxeles).
+	 */
+	const OPTION_COLOR_SWATCH_SIZE = 'wpdm_color_swatch_size';
 
 	/**
 	 * Flag para controlar si el script ya se ha cargado.
@@ -169,10 +174,27 @@ class WPDM_Variation_Table {
 		}
 
 		// Identificar qué atributo es color y cuál es talla
-		// Por defecto: primer atributo = filas (tallas), segundo = columnas (colores)
+		// Prioridad: si existe pa_color, usarlo como FILA (colores en filas)
+		// Las tallas irán en las columnas para evitar tablas demasiado anchas
 		$attribute_keys = array_keys( $attributes );
-		$row_attribute = isset( $attribute_keys[0] ) ? $attribute_keys[0] : '';
-		$col_attribute = isset( $attribute_keys[1] ) ? $attribute_keys[1] : '';
+		$row_attribute = '';
+		$col_attribute = '';
+		
+		// Buscar pa_color primero - será la FILA (colores)
+		if ( in_array( 'pa_color', $attribute_keys, true ) ) {
+			$row_attribute = 'pa_color';
+			// El otro atributo será la columna (tallas)
+			foreach ( $attribute_keys as $key ) {
+				if ( $key !== 'pa_color' ) {
+					$col_attribute = $key;
+					break;
+				}
+			}
+		} else {
+			// Por defecto: primer atributo = filas (colores), segundo = columnas (tallas)
+			$row_attribute = isset( $attribute_keys[0] ) ? $attribute_keys[0] : '';
+			$col_attribute = isset( $attribute_keys[1] ) ? $attribute_keys[1] : '';
+		}
 
 		// Si no hay suficientes atributos, no mostrar tabla
 		if ( empty( $row_attribute ) || empty( $col_attribute ) ) {
@@ -220,6 +242,13 @@ class WPDM_Variation_Table {
 		$row_label = wc_attribute_label( $row_attribute, $product );
 		$col_label = wc_attribute_label( $col_attribute, $product );
 
+		// Obtener taxonomy del atributo de FILA (colores) para buscar imágenes/colores
+		$row_taxonomy = wc_attribute_taxonomy_name( str_replace( 'pa_', '', $row_attribute ) );
+		if ( ! taxonomy_exists( $row_taxonomy ) ) {
+			// Si no existe como taxonomy, intentar con el nombre tal cual
+			$row_taxonomy = $row_attribute;
+		}
+
 		// Obtener tramos de precio del producto
 		$price_tiers = WPDM_Price_Tiers::get_price_tiers( $product->get_id() );
 
@@ -229,6 +258,9 @@ class WPDM_Variation_Table {
 		$price_decimals = wc_get_price_decimals();
 		$price_decimal_sep = wc_get_price_decimal_separator();
 		$price_thousand_sep = wc_get_price_thousand_separator();
+		
+		// Obtener tamaño del círculo de color desde configuración
+		$swatch_size = absint( get_option( self::OPTION_COLOR_SWATCH_SIZE, 36 ) );
 
 		ob_start();
 		?>
@@ -253,10 +285,27 @@ class WPDM_Variation_Table {
 						</tr>
 					</thead>
 					<tbody>
-						<?php foreach ( $row_values as $row_value ) : ?>
+						<?php foreach ( $row_values as $row_value ) : 
+							// Obtener el término para obtener su nombre (más limpio que el slug)
+							$term = get_term_by( 'slug', $row_value, $row_taxonomy );
+							$raw_term_name = $term && ! is_wp_error( $term ) ? $term->name : $row_value;
+							
+							// Limpiar el nombre del color (eliminar prefijos y duplicados)
+							$term_name = self::clean_color_name( $raw_term_name );
+							
+							// Obtener imagen o color del término o de la variación (colores en filas)
+							$color_data = self::get_color_swatch_data( $row_taxonomy, $row_value, $term_name, $variation_map, $row_attribute );
+						?>
 							<tr>
 								<td class="wpdm-table-row-label">
-									<?php echo esc_html( $row_value ); ?>
+									<div class="wpdm-color-header">
+										<?php if ( ! empty( $color_data['image'] ) ) : ?>
+											<img src="<?php echo esc_url( $color_data['image'] ); ?>" alt="<?php echo esc_attr( $term_name ); ?>" class="wpdm-color-image" />
+										<?php elseif ( ! empty( $color_data['color'] ) ) : ?>
+											<span class="wpdm-color-swatch" style="background-color: <?php echo esc_attr( $color_data['color'] ); ?>;"></span>
+										<?php endif; ?>
+										<span class="wpdm-color-name"><?php echo esc_html( $term_name ); ?></span>
+									</div>
 								</td>
 								<?php 
 								$row_total = 0;
@@ -399,6 +448,63 @@ class WPDM_Variation_Table {
 				border-right: 1px solid rgba(255, 255, 255, 0.2);
 			}
 			
+			.wpdm-variation-table th.wpdm-table-header-col {
+				padding: 12px 8px;
+				vertical-align: middle;
+			}
+			
+			.wpdm-color-header {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 8px 4px;
+			}
+			
+			.wpdm-color-image {
+				width: <?php echo esc_attr( $swatch_size ); ?>px;
+				height: <?php echo esc_attr( $swatch_size ); ?>px;
+				border-radius: 50%;
+				object-fit: cover;
+				border: 3px solid rgba(255, 255, 255, 0.4);
+				box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+				transition: transform 0.2s ease, box-shadow 0.2s ease;
+				flex-shrink: 0;
+			}
+			
+			.wpdm-color-image:hover {
+				transform: scale(1.05);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+			}
+			
+			.wpdm-color-swatch {
+				width: <?php echo esc_attr( $swatch_size ); ?>px;
+				height: <?php echo esc_attr( $swatch_size ); ?>px;
+				border-radius: 50%;
+				border: 3px solid rgba(255, 255, 255, 0.4);
+				box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+				display: block;
+				flex-shrink: 0;
+				transition: transform 0.2s ease, box-shadow 0.2s ease;
+			}
+			
+			.wpdm-color-swatch:hover {
+				transform: scale(1.05);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+			}
+			
+			.wpdm-color-name {
+				font-size: 0.65em;
+				font-weight: 400;
+				line-height: 1.3;
+				color: rgba(255, 255, 255, 0.9);
+				text-align: center;
+				margin-top: 2px;
+				word-break: break-word;
+				max-width: 100%;
+			}
+			
 			.wpdm-variation-table th:last-child {
 				border-right: none;
 			}
@@ -430,6 +536,7 @@ class WPDM_Variation_Table {
 				color: var(--wpdm-color-secondary);
 			}
 			
+			
 			.wpdm-variation-table td:last-child {
 				border-right: none;
 			}
@@ -439,7 +546,29 @@ class WPDM_Variation_Table {
 				font-weight: 500;
 				text-align: left;
 				color: var(--wpdm-color-secondary);
-				min-width: 120px;
+				min-width: 180px;
+				vertical-align: middle;
+				padding: 12px 16px;
+			}
+			
+			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-header {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				gap: 12px;
+				justify-content: flex-start;
+			}
+			
+			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-image,
+			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-swatch {
+				flex-shrink: 0;
+			}
+			
+			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-name {
+				font-size: 0.70em;
+				font-weight: 500;
+				color: var(--wpdm-color-secondary);
+				text-align: left;
 			}
 			
 			.wpdm-variation-table .wpdm-table-cell {
@@ -713,6 +842,545 @@ class WPDM_Variation_Table {
 		return ob_get_clean();
 	}
 
+	/**
+	 * Obtener datos de imagen o color para un término de atributo.
+	 * 
+	 * @param string $taxonomy Taxonomy del atributo (ej: pa_color)
+	 * @param string $term_slug Slug del término (ej: ro-rojo, bla-blanco)
+	 * @param string $term_name Nombre del término (ej: Rojo, Blanco) - opcional
+	 * @param array $variation_map Mapa de variaciones [row_value][col_value] => variation_id - opcional
+	 * @param string $col_attribute Nombre del atributo (puede ser de fila o columna según el contexto) - opcional
+	 * @return array Array con 'image' (URL) y/o 'color' (hex)
+	 */
+	private static function get_color_swatch_data( $taxonomy, $term_slug, $term_name = '', $variation_map = array(), $col_attribute = '' ) {
+		$result = array(
+			'image' => '',
+			'color' => '',
+		);
+		
+		if ( empty( $taxonomy ) || empty( $term_slug ) ) {
+			return $result;
+		}
+		
+		// PRIMERO: Intentar obtener imagen directamente de una variación con este color
+		// Buscar en cualquier variación que tenga este color (sin importar la talla)
+		// Solo buscar si el atributo o taxonomy es pa_color o contiene "color"
+		$is_color_attribute = false;
+		if ( ! empty( $col_attribute ) && ( $col_attribute === 'pa_color' || strpos( $col_attribute, 'color' ) !== false ) ) {
+			$is_color_attribute = true;
+		}
+		if ( ! $is_color_attribute && ( $taxonomy === 'pa_color' || strpos( $taxonomy, 'color' ) !== false ) ) {
+			$is_color_attribute = true;
+		}
+		
+		if ( ! empty( $variation_map ) && $is_color_attribute ) {
+			foreach ( $variation_map as $row_value => $col_map ) {
+				if ( isset( $col_map[ $term_slug ] ) ) {
+					$variation_id = $col_map[ $term_slug ];
+					$variation = wc_get_product( $variation_id );
+					
+					if ( $variation ) {
+						// Obtener imagen de la variación (prioridad 1)
+						$variation_image_id = $variation->get_image_id();
+						
+						if ( ! empty( $variation_image_id ) ) {
+							$image_url = wp_get_attachment_image_url( $variation_image_id, 'thumbnail' );
+							if ( $image_url ) {
+								$result['image'] = $image_url;
+								return $result;
+							}
+						}
+						
+						// También intentar obtener la galería de imágenes de la variación (prioridad 2)
+						$gallery_ids = $variation->get_gallery_image_ids();
+						if ( ! empty( $gallery_ids ) && isset( $gallery_ids[0] ) ) {
+							$image_url = wp_get_attachment_image_url( $gallery_ids[0], 'thumbnail' );
+							if ( $image_url ) {
+								$result['image'] = $image_url;
+								return $result;
+							}
+						}
+						
+						// Si la variación no tiene imagen, intentar obtener la del producto padre (prioridad 3)
+						$parent_id = $variation->get_parent_id();
+						if ( $parent_id ) {
+							$parent_product = wc_get_product( $parent_id );
+							if ( $parent_product ) {
+								$parent_image_id = $parent_product->get_image_id();
+								if ( ! empty( $parent_image_id ) ) {
+									$image_url = wp_get_attachment_image_url( $parent_image_id, 'thumbnail' );
+									if ( $image_url ) {
+										$result['image'] = $image_url;
+										return $result;
+									}
+								}
+							}
+						}
+					}
+					break; // Solo necesitamos una variación con este color
+				}
+			}
+		}
+		
+		// SEGUNDO: Intentar obtener imagen del término (plugins como Variation Swatches)
+		$term = get_term_by( 'slug', $term_slug, $taxonomy );
+		if ( ! $term || is_wp_error( $term ) ) {
+			// Si no se encuentra, extraer el nombre del color del slug y buscar en el mapeo
+			$color_name = self::extract_color_name_from_slug( $term_slug );
+			$result['color'] = self::get_color_from_name( $color_name );
+			return $result;
+		}
+		
+		// Intentar obtener imagen del término
+		$image_id = get_term_meta( $term->term_id, 'product_attribute_image', true );
+		if ( empty( $image_id ) ) {
+			$image_id = get_term_meta( $term->term_id, 'image', true );
+		}
+		if ( empty( $image_id ) ) {
+			$image_id = get_term_meta( $term->term_id, 'swatches_image', true );
+		}
+		if ( empty( $image_id ) ) {
+			// Intentar con diferentes nombres de meta fields comunes
+			$image_id = get_term_meta( $term->term_id, 'thumbnail_id', true );
+		}
+		
+		if ( ! empty( $image_id ) ) {
+			$image_url = wp_get_attachment_image_url( $image_id, 'thumbnail' );
+			if ( $image_url ) {
+				$result['image'] = $image_url;
+				return $result;
+			}
+		}
+		
+		// Intentar obtener color hexadecimal del término
+		$color = get_term_meta( $term->term_id, 'product_attribute_color', true );
+		if ( empty( $color ) ) {
+			$color = get_term_meta( $term->term_id, 'color', true );
+		}
+		if ( empty( $color ) ) {
+			$color = get_term_meta( $term->term_id, 'swatches_color', true );
+		}
+		if ( empty( $color ) ) {
+			// Intentar con diferentes nombres de meta fields comunes
+			$color = get_term_meta( $term->term_id, 'pa_color', true );
+		}
+		
+		if ( ! empty( $color ) ) {
+			// Asegurar que el color tenga el formato correcto (#RRGGBB)
+			$color = trim( $color );
+			if ( strpos( $color, '#' ) !== 0 ) {
+				$color = '#' . $color;
+			}
+			// Validar que sea un color hexadecimal válido
+			if ( preg_match( '/^#[0-9A-Fa-f]{6}$/', $color ) ) {
+				$result['color'] = $color;
+				return $result;
+			}
+		}
+		
+		// TERCERO: Si no hay imagen ni color, intentar mapeo básico por nombre
+		// Usar el nombre del término si está disponible (más limpio), sino extraer del slug
+		$color_name = '';
+		if ( ! empty( $term_name ) ) {
+			$color_name = strtolower( trim( $term_name ) );
+		} else {
+			$color_name = self::extract_color_name_from_slug( $term_slug );
+		}
+		
+		$result['color'] = self::get_color_from_name( $color_name );
+		
+		return $result;
+	}
+	
+	/**
+	 * Extraer el nombre del color del slug, buscando dentro del slug completo.
+	 * 
+	 * @param string $slug Slug del término (ej: ro-rojo, bla-blanco, bl-blanco-br)
+	 * @return string Nombre del color detectado o slug limpio
+	 */
+	private static function extract_color_name_from_slug( $slug ) {
+		$slug = strtolower( trim( $slug ) );
+		
+		// Lista de nombres de colores comunes para buscar dentro del slug
+		// Ordenar por longitud descendente para priorizar colores compuestos
+		$color_names = array(
+			// Colores compuestos primero (más específicos)
+			'azul claro', 'azul oscuro', 'azul marino', 'azul cielo', 'azul real', 'azul turquesa',
+			'gris claro', 'gris oscuro', 'gris perla', 'gris plata', 'gris carbón',
+			'verde claro', 'verde oscuro', 'verde botella', 'verde esmeralda', 'verde menta', 'verde oliva', 'verde musgo', 'verde bosque', 'verde manzana', 'verde lima',
+			'rojo claro', 'rojo oscuro', 'rojo carmesí', 'rojo cereza', 'rojo sangre', 'rojo tomate',
+			'amarillo claro', 'amarillo oscuro', 'amarillo mostaza',
+			'naranja claro', 'naranja oscuro', 'naranja azul',
+			'marino oscuro',
+			'rosa claro', 'rosa oscuro', 'rosa palo',
+			'púrpura claro', 'púrpura oscuro',
+			'beige claro', 'beige oscuro',
+			'coral claro', 'coral oscuro',
+			// Colores simples
+			'rojo', 'roja', 'azul', 'verde', 'amarillo', 'naranja', 'rosa',
+			'negro', 'blanco', 'gris', 'marrón', 'marron', 'morado', 'violeta',
+			'beige', 'coral', 'turquesa', 'ocre', 'granate', 'burdeos',
+			'marino', 'dorado', 'oro', 'plata', 'cobre',
+			'red', 'blue', 'green', 'yellow', 'orange', 'pink', 'black',
+			'white', 'gray', 'grey', 'brown', 'purple', 'violet'
+		);
+		
+		// Buscar cada nombre de color dentro del slug
+		foreach ( $color_names as $color_name ) {
+			if ( strpos( $slug, $color_name ) !== false ) {
+				return $color_name;
+			}
+		}
+		
+		// Si no se encuentra, intentar eliminar prefijos comunes (ro-, bla-, etc.)
+		// Formato común: prefijo-color (ej: ro-rojo, bla-blanco, az-azul)
+		if ( preg_match( '/^[a-z]{2,3}-(.+)$/i', $slug, $matches ) ) {
+			$cleaned = strtolower( trim( $matches[1] ) );
+			// Eliminar también sufijos comunes (-br, -es, etc.)
+			$cleaned = preg_replace( '/-[a-z]{1,3}$/i', '', $cleaned );
+			return $cleaned;
+		}
+		
+		// Si no tiene prefijo, devolver el slug tal cual
+		return $slug;
+	}
+	
+	/**
+	 * Limpiar el nombre del color eliminando prefijos y duplicados.
+	 * 
+	 * Ejemplos:
+	 * - "azul-azul" -> "azul"
+	 * - "bla-blanco" -> "blanco"
+	 * - "neg-negro" -> "negro"
+	 * - "ro-rojo" -> "rojo"
+	 * - "AZC-AZUL CLARO" -> "Azul Claro"
+	 * - "GROS-GRIS OSCURO" -> "Gris Oscuro"
+	 * - "MROS-MARINO OSCURO" -> "Marino Oscuro"
+	 * - "NARA-NARANJA/AZUL" -> "Naranja/Azul"
+	 * - "VEB-VERDE BOTELLA" -> "Verde Botella"
+	 * 
+	 * @param string $name Nombre del color (puede venir del término o del slug)
+	 * @return string Nombre del color limpio
+	 */
+	private static function clean_color_name( $name ) {
+		$name = trim( $name );
+		
+		// Si está vacío, devolver tal cual
+		if ( empty( $name ) ) {
+			return $name;
+		}
+		
+		// Convertir a minúsculas para comparar, pero mantener mayúsculas para palabras importantes
+		$name_lower = strtolower( $name );
+		
+		// Patrón 1: prefijo-COLOR MODIFICADOR (ej: AZC-AZUL CLARO, GROS-GRIS OSCURO, MROS-MARINO OSCURO, VEB-VERDE BOTELLA)
+		if ( preg_match( '/^[a-z]{2,4}-([a-z]+(?:\s+[a-z]+)*)(?:\s*\/\s*[a-z]+)?$/i', $name, $matches ) ) {
+			$color_part = trim( $matches[1] );
+			// Si hay una barra, mantenerla (ej: NARA-NARANJA/AZUL)
+			if ( preg_match( '/\//', $name ) ) {
+				$parts = explode( '/', $name );
+				$cleaned_parts = array();
+				foreach ( $parts as $part ) {
+					$part = trim( $part );
+					// Eliminar prefijo si existe
+					if ( preg_match( '/^[a-z]{2,4}-(.+)$/i', $part, $part_matches ) ) {
+						$part = trim( $part_matches[1] );
+					}
+					$cleaned_parts[] = self::capitalize_color_name( $part );
+				}
+				return implode( '/', $cleaned_parts );
+			}
+			return self::capitalize_color_name( $color_part );
+		}
+		
+		// Patrón 2: prefijo-color-color (ej: azul-azul, rojo-rojo)
+		if ( preg_match( '/^([a-z]{2,4})-([a-z]+)-([a-z]+)$/i', $name_lower, $matches ) ) {
+			$color1 = $matches[2];
+			$color2 = $matches[3];
+			
+			// Si color1 y color2 son iguales, devolver solo uno
+			if ( $color1 === $color2 ) {
+				return self::capitalize_color_name( $color1 );
+			}
+			
+			// Si color2 contiene color1 o viceversa, devolver el más largo
+			if ( strpos( $color2, $color1 ) !== false ) {
+				return self::capitalize_color_name( $color2 );
+			}
+			if ( strpos( $color1, $color2 ) !== false ) {
+				return self::capitalize_color_name( $color1 );
+			}
+		}
+		
+		// Patrón 3: prefijo-color (ej: bla-blanco, neg-negro, ro-rojo, az-azul)
+		if ( preg_match( '/^[a-z]{2,4}-(.+)$/i', $name, $matches ) ) {
+			$color = trim( $matches[1] );
+			// Verificar si el color contiene el prefijo
+			$prefix = strtolower( substr( $name, 0, strpos( $name, '-' ) ) );
+			$color_lower = strtolower( $color );
+			if ( strpos( $color_lower, $prefix ) === false ) {
+				return self::capitalize_color_name( $color );
+			}
+		}
+		
+		// Patrón 4: color-color (duplicado sin prefijo, ej: azul-azul)
+		if ( preg_match( '/^([a-z]+)-([a-z]+)$/i', $name_lower, $matches ) ) {
+			$color1 = $matches[1];
+			$color2 = $matches[2];
+			
+			// Si son iguales, devolver solo uno
+			if ( $color1 === $color2 ) {
+				return self::capitalize_color_name( $color1 );
+			}
+			
+			// Si uno contiene al otro, devolver el más largo
+			if ( strpos( $color2, $color1 ) !== false && strlen( $color2 ) > strlen( $color1 ) ) {
+				return self::capitalize_color_name( $color2 );
+			}
+			if ( strpos( $color1, $color2 ) !== false && strlen( $color1 ) > strlen( $color2 ) ) {
+				return self::capitalize_color_name( $color1 );
+			}
+		}
+		
+		// Si no coincide con ningún patrón, devolver el nombre original capitalizado
+		return self::capitalize_color_name( $name );
+	}
+	
+	/**
+	 * Capitalizar el nombre del color correctamente.
+	 * 
+	 * @param string $name Nombre del color
+	 * @return string Nombre capitalizado
+	 */
+	private static function capitalize_color_name( $name ) {
+		$name = trim( $name );
+		if ( empty( $name ) ) {
+			return $name;
+		}
+		
+		// Si contiene una barra, capitalizar cada parte
+		if ( strpos( $name, '/' ) !== false ) {
+			$parts = explode( '/', $name );
+			$capitalized = array();
+			foreach ( $parts as $part ) {
+				$capitalized[] = self::capitalize_color_name( trim( $part ) );
+			}
+			return implode( '/', $capitalized );
+		}
+		
+		// Capitalizar cada palabra (primera letra mayúscula, resto minúscula)
+		$words = explode( ' ', $name );
+		$capitalized_words = array();
+		foreach ( $words as $word ) {
+			$word = strtolower( trim( $word ) );
+			if ( ! empty( $word ) ) {
+				$capitalized_words[] = ucfirst( $word );
+			}
+		}
+		
+		return implode( ' ', $capitalized_words );
+	}
+	
+	/**
+	 * Obtener color hexadecimal básico desde el nombre del color.
+	 * Busca el color dentro del nombre completo (ej: "bl-blanco-br" detectará "blanco").
+	 * 
+	 * @param string $color_name Nombre del color (ej: rojo, azul, verde, ro-rojo, bla-blanco, bl-blanco-br)
+	 * @return string Color hexadecimal o vacío
+	 */
+	private static function get_color_from_name( $color_name ) {
+		$color_name = strtolower( trim( $color_name ) );
+		
+		// Mapeo básico de colores comunes en español e inglés
+		$color_map = array(
+			// Español
+			'rojo' => '#FF0000',
+			'roja' => '#FF0000',
+			'azul' => '#0000FF',
+			'azul marino' => '#000080',
+			'verde' => '#008000',
+			'amarillo' => '#FFFF00',
+			'naranja' => '#FFA500',
+			'rosa' => '#FFC0CB',
+			'negro' => '#000000',
+			'blanco' => '#FFFFFF',
+			'gris' => '#808080',
+			'marrón' => '#A52A2A',
+			'marron' => '#A52A2A',
+			'morado' => '#800080',
+			'violeta' => '#8A2BE2',
+			'beige' => '#F5F5DC',
+			'coral' => '#FF7F50',
+			'turquesa' => '#40E0D0',
+			'ocre' => '#CC7722',
+			'granate' => '#800020',
+			'burdeos' => '#800020',
+			'mostaza' => '#FFDB58',
+			'menta' => '#98FB98',
+			'lavanda' => '#E6E6FA',
+			'salmon' => '#FA8072',
+			'fucsia' => '#FF00FF',
+			'cian' => '#00FFFF',
+			'lima' => '#00FF00',
+			'oliva' => '#808000',
+			'coral' => '#FF7F50',
+			'coral claro' => '#FF7F50',
+			'coral oscuro' => '#FF6347',
+			'oro' => '#FFD700',
+			'plata' => '#C0C0C0',
+			'cobre' => '#B87333',
+			'champagne' => '#F7E7CE',
+			'crema' => '#FFFDD0',
+			'beige claro' => '#F5F5DC',
+			'beige oscuro' => '#D2B48C',
+			'arena' => '#EDC9AF',
+			'caramelo' => '#AF6E4D',
+			'chocolate' => '#7B3F00',
+			'café' => '#6F4E37',
+			'cafe' => '#6F4E37',
+			'piel' => '#FFDBAC',
+			'durazno' => '#FFE5B4',
+			'melocotón' => '#FFE5B4',
+			'coral' => '#FF7F50',
+			'salmón' => '#FA8072',
+			'salmon' => '#FA8072',
+			'terracota' => '#E2725B',
+			'ladrillo' => '#B22222',
+			'bermejo' => '#DC143C',
+			'carmesí' => '#DC143C',
+			'carmesi' => '#DC143C',
+			'escarlata' => '#FF2400',
+			'cereza' => '#DE3163',
+			'frambuesa' => '#E30B5C',
+			'fresa' => '#FC5A8D',
+			'rosa palo' => '#FFB6C1',
+			'rosa claro' => '#FFB6C1',
+			'rosa oscuro' => '#B76E79',
+			'fucsia' => '#FF00FF',
+			'magenta' => '#FF00FF',
+			'púrpura' => '#800080',
+			'purpura' => '#800080',
+			'púrpura claro' => '#DA70D6',
+			'púrpura oscuro' => '#4B0082',
+			'lavanda' => '#E6E6FA',
+			'lila' => '#C8A2C8',
+			'violeta' => '#8A2BE2',
+			'índigo' => '#4B0082',
+			'indigo' => '#4B0082',
+			'azul cielo' => '#87CEEB',
+			'azul claro' => '#ADD8E6',
+			'azul oscuro' => '#00008B',
+			'azul marino' => '#000080',
+			'azul real' => '#4169E1',
+			'azul turquesa' => '#40E0D0',
+			'turquesa' => '#40E0D0',
+			'cian' => '#00FFFF',
+			'aqua' => '#00FFFF',
+			'verde lima' => '#00FF00',
+			'verde claro' => '#90EE90',
+			'verde oscuro' => '#006400',
+			'verde esmeralda' => '#50C878',
+			'verde menta' => '#98FB98',
+			'verde oliva' => '#808000',
+			'verde musgo' => '#8A9A5B',
+			'verde bosque' => '#228B22',
+			'verde manzana' => '#8DB600',
+			'amarillo claro' => '#FFFFE0',
+			'amarillo oscuro' => '#B8860B',
+			'amarillo mostaza' => '#FFDB58',
+			'oro' => '#FFD700',
+			'ámbar' => '#FFBF00',
+			'ambar' => '#FFBF00',
+			'naranja claro' => '#FFA500',
+			'naranja oscuro' => '#FF8C00',
+			'calabaza' => '#FF7518',
+			'rojo claro' => '#FF6B6B',
+			'rojo oscuro' => '#8B0000',
+			'rojo carmesí' => '#DC143C',
+			'rojo cereza' => '#DE3163',
+			'rojo sangre' => '#8B0000',
+			'rojo tomate' => '#FF6347',
+			'gris claro' => '#D3D3D3',
+			'gris oscuro' => '#555555',
+			'marino' => '#000080',
+			'marino oscuro' => '#000050',
+			'verde botella' => '#006A4E',
+			'verde botella oscuro' => '#004D3A',
+			'dorado' => '#FFD700',
+			'naranja azul' => '#FFA500', // Color combinado, usar naranja como base
+			'naranja/azul' => '#FFA500', // Color combinado, usar naranja como base
+			'gris oscuro' => '#555555',
+			'marino' => '#000080',
+			'marino oscuro' => '#000050',
+			'verde botella' => '#006A4E',
+			'verde botella oscuro' => '#004D3A',
+			'dorado' => '#FFD700',
+			'naranja azul' => '#FFA500', // Color combinado, usar naranja como base
+			'naranja/azul' => '#FFA500', // Color combinado, usar naranja como base
+			'gris perla' => '#E8E8E8',
+			'gris plata' => '#C0C0C0',
+			'gris carbón' => '#36454F',
+			'negro carbón' => '#1C1C1C',
+			'blanco roto' => '#F5F5DC',
+			'blanco nieve' => '#FFFAFA',
+			'blanco hueso' => '#F5F5DC',
+			'beige' => '#F5F5DC',
+			'crudo' => '#F5F5DC',
+			'natural' => '#F5F5DC',
+			// Inglés
+			'red' => '#FF0000',
+			'blue' => '#0000FF',
+			'green' => '#008000',
+			'yellow' => '#FFFF00',
+			'orange' => '#FFA500',
+			'pink' => '#FFC0CB',
+			'black' => '#000000',
+			'white' => '#FFFFFF',
+			'gray' => '#808080',
+			'grey' => '#808080',
+			'brown' => '#A52A2A',
+			'purple' => '#800080',
+			'violet' => '#8A2BE2',
+			'beige' => '#F5F5DC',
+			'coral' => '#FF7F50',
+			'turquoise' => '#40E0D0',
+			'burgundy' => '#800020',
+			'mustard' => '#FFDB58',
+			'mint' => '#98FB98',
+			'lavender' => '#E6E6FA',
+			'salmon' => '#FA8072',
+			'fuchsia' => '#FF00FF',
+			'cyan' => '#00FFFF',
+			'lime' => '#00FF00',
+			'olive' => '#808000',
+		);
+		
+		// Buscar coincidencia exacta
+		if ( isset( $color_map[ $color_name ] ) ) {
+			return $color_map[ $color_name ];
+		}
+		
+		// Buscar coincidencia parcial (para casos como "azul claro", "rojo oscuro", "bl-blanco-br")
+		// Ordenar por longitud descendente para priorizar coincidencias más específicas
+		$sorted_colors = array();
+		foreach ( $color_map as $key => $hex ) {
+			$sorted_colors[ strlen( $key ) ][] = array( 'key' => $key, 'hex' => $hex );
+		}
+		krsort( $sorted_colors ); // Ordenar por longitud descendente
+		
+		foreach ( $sorted_colors as $length => $colors ) {
+			foreach ( $colors as $color_data ) {
+				$key = $color_data['key'];
+				// Buscar el color dentro del nombre completo
+				if ( strpos( $color_name, $key ) !== false ) {
+					return $color_data['hex'];
+				}
+			}
+		}
+		
+		return '';
+	}
+	
 	/**
 	 * Obtener mapa de atributos de variaciones para JavaScript.
 	 * 
