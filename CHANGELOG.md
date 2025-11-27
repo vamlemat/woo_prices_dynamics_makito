@@ -5,6 +5,86 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.3.1] - 2025-01-XX
+
+### 🎨 Mejoras de Diseño
+
+- **Rediseño completo de la tabla de variaciones:**
+  - Diseño más moderno y elegante con gradientes sutiles
+  - Tipografía más ligera y legible
+  - Columnas con ancho mínimo para evitar desalineaciones
+  - Efectos hover y transiciones suaves
+  - Diseño responsive mejorado para móviles
+  - Integración con colores globales de Elementor/WordPress
+
+- **Integración con colores del tema:**
+  - Uso de variables CSS globales de Elementor
+  - Compatibilidad automática con colores del tema
+  - Fallbacks para temas sin variables CSS
+  - Consistencia visual con el diseño del sitio
+
+### 🐛 Correcciones
+
+- **Corregido problema del símbolo de moneda:**
+  - El símbolo € ya no se muestra como `&euro;` cuando cambia de color/variación
+  - Cambio de `.text()` a `.html()` para renderizar correctamente el símbolo
+  - Formato de moneda correcto en todas las actualizaciones dinámicas
+
+### 🔧 Mejoras Técnicas
+
+- Mejorado CSS con variables CSS para fácil personalización
+- Optimización de estilos para mejor rendimiento
+- Mejor estructura de clases CSS para mantenimiento
+
+---
+
+## [1.3.0] - 2025-01-XX
+
+### ✨ Nuevas Características
+
+- **Sistema de caché para tramos de precio (deshabilitado temporalmente):**
+  - Implementado caché usando transients de WordPress para mejorar el rendimiento
+  - Expiración automática del caché cuando se actualiza un producto o sus meta fields
+  - Reducción significativa de consultas a la base de datos
+  - Función para limpiar todo el caché de tramos si es necesario
+  - **Nota:** El caché está deshabilitado temporalmente debido a problemas con la selección de tramos. Se reactivará en una versión futura una vez resuelto.
+
+- **Internacionalización mejorada:**
+  - Formato de moneda ahora usa la configuración de WooCommerce
+  - Soporte para diferentes posiciones del símbolo de moneda (left, right, left_space, right_space)
+  - Soporte para separadores decimales y de miles personalizados
+  - Eliminado formato hardcodeado de moneda en JavaScript
+
+### 🔧 Mejoras
+
+- **Optimización del carrito:**
+  - Caché en memoria para precios calculados por grupo de producto
+  - Evita recálculos innecesarios cuando el precio ya está aplicado correctamente
+  - Verificación inteligente de cambios antes de actualizar productos en el carrito
+
+- **Manejo de formato numérico:**
+  - Soporte mejorado para números con coma como separador decimal (formato europeo: 2,27)
+  - Conversión automática de coma a punto para cálculos internos
+  - Compatibilidad con ambos formatos (coma y punto)
+
+- **Validación de tramos:**
+  - Ordenamiento automático de tramos por cantidad ascendente
+  - Validación mejorada de datos de tramos
+
+### 🐛 Correcciones
+
+- Corregido problema con selección de tramos que causaba que siempre se aplicara el mismo precio
+- Corregida lógica de selección de tramos para elegir correctamente el tramo más específico
+- Mejorado manejo de tramos con formato numérico europeo (coma como separador decimal)
+
+### 📝 Notas Técnicas
+
+- El caché se limpia automáticamente cuando se actualiza un producto o sus meta fields
+- Los precios se normalizan correctamente independientemente del formato de entrada
+- Compatibilidad total con formatos numéricos europeos y americanos
+
+---
+
 ## [1.2.2] - 2025-01-XX
 
 ### ✨ Nuevas Características

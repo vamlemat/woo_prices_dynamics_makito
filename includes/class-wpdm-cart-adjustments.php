@@ -17,6 +17,14 @@ class WPDM_Cart_Adjustments {
 	private static $is_calculating = false;
 
 	/**
+	 * Cache de precios calculados por grupo de producto.
+	 * Estructura: [parent_id][total_quantity] => unit_price
+	 *
+	 * @var array
+	 */
+	private static $price_cache = array();
+
+	/**
 	 * Registrar hooks.
 	 */
 	public static function init() {
@@ -52,6 +60,7 @@ class WPDM_Cart_Adjustments {
 		}
 
 		self::$is_calculating = true;
+		self::$price_cache = array(); // Limpiar caché al inicio
 
 		// Agrupar ítems por producto padre (para variaciones) o por producto (para simples)
 		$grouped_items = array();
@@ -107,9 +116,21 @@ class WPDM_Cart_Adjustments {
 				continue;
 			}
 
-			// Obtener precio unitario basado en la suma total
-			// Para variaciones, usar el parent_id; para simples, usar su propio ID
-			$unit_price = WPDM_Price_Tiers::get_price_from_tiers( $parent_id, $total_quantity );
+			// Verificar si ya tenemos el precio en caché
+			$unit_price = null;
+			if ( isset( self::$price_cache[ $parent_id ][ $total_quantity ] ) ) {
+				$unit_price = self::$price_cache[ $parent_id ][ $total_quantity ];
+			} else {
+				// Obtener precio unitario basado en la suma total
+				// Para variaciones, usar el parent_id; para simples, usar su propio ID
+				$unit_price = WPDM_Price_Tiers::get_price_from_tiers( $parent_id, $total_quantity );
+				
+				// Guardar en caché
+				if ( ! isset( self::$price_cache[ $parent_id ] ) ) {
+					self::$price_cache[ $parent_id ] = array();
+				}
+				self::$price_cache[ $parent_id ][ $total_quantity ] = $unit_price;
+			}
 
 			if ( null === $unit_price || $unit_price <= 0 ) {
 				// Si no hay tramos, continuar con el siguiente grupo
@@ -119,25 +140,33 @@ class WPDM_Cart_Adjustments {
 			// Aplicar el mismo precio unitario a todos los ítems del grupo
 			foreach ( $items as $item_data ) {
 				$cart_item_key = $item_data['cart_item_key'];
+				$cart_item = $item_data['cart_item'];
 				$product = $item_data['product'];
 				$quantity = $item_data['quantity'];
 
-				// Aplicar el precio unitario calculado
-				$product->set_price( $unit_price );
-				$product->set_regular_price( $unit_price );
-				
-				// También establecer el precio de venta si existe
-				if ( method_exists( $product, 'set_sale_price' ) ) {
-					$product->set_sale_price( '' ); // Limpiar precio de venta para usar el precio regular
-				}
+				// Verificar si el precio ya está aplicado y es el correcto
+				$current_tier_price = isset( $cart_item['wpdm_tier_price'] ) ? floatval( $cart_item['wpdm_tier_price'] ) : 0;
+				$current_tier_qty = isset( $cart_item['wpdm_tier_qty'] ) ? absint( $cart_item['wpdm_tier_qty'] ) : 0;
 
-				// Guardar información del tramo aplicado en el ítem del carrito
-				$cart->cart_contents[ $cart_item_key ]['wpdm_tier_price'] = $unit_price;
-				$cart->cart_contents[ $cart_item_key ]['wpdm_tier_qty'] = $total_quantity; // Guardar cantidad total para referencia
-				$cart->cart_contents[ $cart_item_key ]['wpdm_tier_total_qty'] = $total_quantity; // Cantidad total del grupo
-				
-				// Actualizar el objeto del producto en el carrito
-				$cart->cart_contents[ $cart_item_key ]['data'] = $product;
+				// Solo actualizar si el precio o la cantidad total han cambiado
+				if ( abs( $current_tier_price - $unit_price ) > 0.01 || $current_tier_qty !== $total_quantity ) {
+					// Aplicar el precio unitario calculado
+					$product->set_price( $unit_price );
+					$product->set_regular_price( $unit_price );
+					
+					// También establecer el precio de venta si existe
+					if ( method_exists( $product, 'set_sale_price' ) ) {
+						$product->set_sale_price( '' ); // Limpiar precio de venta para usar el precio regular
+					}
+
+					// Guardar información del tramo aplicado en el ítem del carrito
+					$cart->cart_contents[ $cart_item_key ]['wpdm_tier_price'] = $unit_price;
+					$cart->cart_contents[ $cart_item_key ]['wpdm_tier_qty'] = $total_quantity; // Guardar cantidad total para referencia
+					$cart->cart_contents[ $cart_item_key ]['wpdm_tier_total_qty'] = $total_quantity; // Cantidad total del grupo
+					
+					// Actualizar el objeto del producto en el carrito
+					$cart->cart_contents[ $cart_item_key ]['data'] = $product;
+				}
 			}
 		}
 

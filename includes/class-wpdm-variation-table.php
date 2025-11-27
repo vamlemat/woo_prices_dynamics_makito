@@ -223,24 +223,31 @@ class WPDM_Variation_Table {
 		// Obtener tramos de precio del producto
 		$price_tiers = WPDM_Price_Tiers::get_price_tiers( $product->get_id() );
 
+		// Obtener configuración de formato de moneda de WooCommerce
+		$currency_symbol = get_woocommerce_currency_symbol();
+		$currency_pos = get_option( 'woocommerce_currency_pos', 'left' );
+		$price_decimals = wc_get_price_decimals();
+		$price_decimal_sep = wc_get_price_decimal_separator();
+		$price_thousand_sep = wc_get_price_thousand_separator();
+
 		ob_start();
 		?>
-		<div class="wpdm-variation-table-wrapper" style="margin: 20px 0;">
+		<div class="wpdm-variation-table-wrapper">
 			<h3 class="wpdm-variation-table-title"><?php echo esc_html( sprintf( __( 'Selecciona cantidades (%s x %s)', 'woo-prices-dynamics-makito' ), $row_label, $col_label ) ); ?></h3>
 			
-			<div class="wpdm-variation-table-container" style="overflow-x: auto;">
-				<table class="wpdm-variation-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+			<div class="wpdm-variation-table-container">
+				<table class="wpdm-variation-table">
 					<thead>
 						<tr>
-							<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600;">
+							<th class="wpdm-table-header-row">
 								<?php echo esc_html( $row_label ); ?> \ <?php echo esc_html( $col_label ); ?>
 							</th>
 							<?php foreach ( $col_values as $col_value ) : ?>
-								<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600; text-align: center;">
+								<th class="wpdm-table-header-col">
 									<?php echo esc_html( $col_value ); ?>
 								</th>
 							<?php endforeach; ?>
-							<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600; text-align: center;">
+							<th class="wpdm-table-header-total">
 								<?php esc_html_e( 'Total', 'woo-prices-dynamics-makito' ); ?>
 							</th>
 						</tr>
@@ -248,7 +255,7 @@ class WPDM_Variation_Table {
 					<tbody>
 						<?php foreach ( $row_values as $row_value ) : ?>
 							<tr>
-								<td style="padding: 10px; border: 1px solid #ddd; background: #f9f9f9; font-weight: 600;">
+								<td class="wpdm-table-row-label">
 									<?php echo esc_html( $row_value ); ?>
 								</td>
 								<?php 
@@ -257,7 +264,7 @@ class WPDM_Variation_Table {
 									$variation_id = isset( $variation_map[ $row_value ][ $col_value ] ) ? absint( $variation_map[ $row_value ][ $col_value ] ) : 0;
 									$is_available = $variation_id > 0;
 								?>
-									<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+									<td class="wpdm-table-cell">
 										<?php if ( $is_available ) : ?>
 											<input 
 												type="number" 
@@ -268,28 +275,27 @@ class WPDM_Variation_Table {
 												min="0" 
 												step="1" 
 												value="0" 
-												style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc;"
 											/>
 										<?php else : ?>
-											<span style="color: #999;">—</span>
+											<span class="wpdm-table-unavailable">—</span>
 										<?php endif; ?>
 									</td>
 								<?php endforeach; ?>
-								<td class="wpdm-row-total" style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: 600;">
+								<td class="wpdm-row-total">
 									0
 								</td>
 							</tr>
 						<?php endforeach; ?>
-						<tr style="background: #f0f0f0; font-weight: 600;">
-							<td style="padding: 10px; border: 1px solid #ddd;">
+						<tr class="wpdm-table-totals-row">
+							<td class="wpdm-table-totals-label">
 								<?php esc_html_e( 'Total', 'woo-prices-dynamics-makito' ); ?>
 							</td>
 							<?php foreach ( $col_values as $col_value ) : ?>
-								<td class="wpdm-col-total" style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+								<td class="wpdm-col-total">
 									0
 								</td>
 							<?php endforeach; ?>
-							<td class="wpdm-grand-total" style="padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 1.1em; color: #0073aa;">
+							<td class="wpdm-grand-total">
 								0
 							</td>
 						</tr>
@@ -297,16 +303,16 @@ class WPDM_Variation_Table {
 				</table>
 			</div>
 
-			<div class="wpdm-table-summary" style="margin: 15px 0; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-				<div class="wpdm-table-total-qty" style="margin-bottom: 10px;">
+			<div class="wpdm-table-summary">
+				<div class="wpdm-table-total-qty">
 					<strong><?php esc_html_e( 'Cantidad total:', 'woo-prices-dynamics-makito' ); ?></strong> 
 					<span class="wpdm-total-quantity">0</span>
 				</div>
-				<div class="wpdm-table-price-info" style="margin-bottom: 10px;">
+				<div class="wpdm-table-price-info">
 					<strong><?php esc_html_e( 'Precio unitario (según tramo):', 'woo-prices-dynamics-makito' ); ?></strong> 
 					<span class="wpdm-unit-price">—</span>
 				</div>
-				<div class="wpdm-table-total-price" style="font-size: 1.2em; font-weight: 600;">
+				<div class="wpdm-table-total-price">
 					<strong><?php esc_html_e( 'Precio total:', 'woo-prices-dynamics-makito' ); ?></strong> 
 					<span class="wpdm-total-price">—</span>
 				</div>
@@ -315,7 +321,6 @@ class WPDM_Variation_Table {
 			<button 
 				type="button" 
 				class="wpdm-add-table-to-cart button alt" 
-				style="padding: 12px 30px; font-size: 1.1em; margin-top: 15px;"
 				data-product-id="<?php echo esc_attr( $product->get_id() ); ?>"
 			>
 				<?php esc_html_e( 'Añadir al carrito', 'woo-prices-dynamics-makito' ); ?>
@@ -329,23 +334,274 @@ class WPDM_Variation_Table {
 				'variation_attributes' => self::get_variation_attributes_map( $variation_map, $row_attribute, $col_attribute ),
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce' => wp_create_nonce( 'wpdm_table_nonce' ),
+				'currency_config' => array(
+					'symbol' => $currency_symbol,
+					'position' => $currency_pos,
+					'decimals' => $price_decimals,
+					'decimalSep' => $price_decimal_sep,
+					'thousandSep' => $price_thousand_sep,
+				),
 			) ) ); ?>" />
 		</div>
 
 		<style>
+			:root {
+				--wpdm-color-primary: var(--e-global-color-primary, #6EC1E4);
+				--wpdm-color-secondary: var(--e-global-color-secondary, #54595F);
+				--wpdm-color-text: var(--e-global-color-text, #7A7A7A);
+				--wpdm-color-accent: var(--e-global-color-accent, #61CE70);
+				--wpdm-color-bg-light: var(--e-global-color-5938fdc, #F1F1F1);
+				--wpdm-color-blue-dark: var(--e-global-color-90d3021, #0464AC);
+				--wpdm-color-blue-darker: var(--e-global-color-5273eb1, #061B46);
+				--wpdm-color-white: var(--e-global-color-1e99445, #FFFFFF);
+			}
+			
 			.wpdm-variation-table-wrapper {
 				clear: both;
+				margin: 2em 0;
 			}
-			.wpdm-variation-table input[type="number"]:focus {
-				outline: 2px solid #0073aa;
-				border-color: #0073aa;
+			
+			.wpdm-variation-table-title {
+				font-size: 1.25em;
+				font-weight: 500;
+				margin-bottom: 1em;
+				color: var(--wpdm-color-secondary);
 			}
+			
+			.wpdm-variation-table-container {
+				overflow-x: auto;
+				margin: 1.5em 0;
+				-webkit-overflow-scrolling: touch;
+			}
+			
+			.wpdm-variation-table {
+				width: 100%;
+				border-collapse: separate;
+				border-spacing: 0;
+				background: var(--wpdm-color-white);
+				border-radius: 8px;
+				overflow: hidden;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+			}
+			
+			.wpdm-variation-table thead {
+				background: linear-gradient(135deg, var(--wpdm-color-blue-dark) 0%, var(--wpdm-color-blue-darker) 100%);
+			}
+			
+			.wpdm-variation-table th {
+				padding: 14px 12px;
+				text-align: center;
+				font-weight: 500;
+				font-size: 0.9em;
+				color: var(--wpdm-color-white);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				border-right: 1px solid rgba(255, 255, 255, 0.2);
+			}
+			
+			.wpdm-variation-table th:last-child {
+				border-right: none;
+			}
+			
+			.wpdm-variation-table th.wpdm-table-header-row {
+				text-align: left;
+				background: rgba(255, 255, 255, 0.15);
+				font-weight: 600;
+			}
+			
+			.wpdm-variation-table tbody tr {
+				transition: background-color 0.2s ease;
+			}
+			
+			.wpdm-variation-table tbody tr:hover {
+				background-color: var(--wpdm-color-bg-light);
+			}
+			
+			.wpdm-variation-table tbody tr:last-child {
+				border-bottom: none;
+			}
+			
+			.wpdm-variation-table td {
+				padding: 12px;
+				border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+				border-right: 1px solid rgba(0, 0, 0, 0.08);
+				text-align: center;
+				font-size: 0.9em;
+				color: var(--wpdm-color-secondary);
+			}
+			
+			.wpdm-variation-table td:last-child {
+				border-right: none;
+			}
+			
+			.wpdm-variation-table .wpdm-table-row-label {
+				background: var(--wpdm-color-bg-light);
+				font-weight: 500;
+				text-align: left;
+				color: var(--wpdm-color-secondary);
+				min-width: 120px;
+			}
+			
+			.wpdm-variation-table .wpdm-table-cell {
+				min-width: 90px;
+			}
+			
+			.wpdm-variation-table .wpdm-table-qty-input {
+				width: 70px;
+				padding: 8px;
+				text-align: center;
+				border: 1px solid rgba(0, 0, 0, 0.15);
+				border-radius: 4px;
+				font-size: 0.9em;
+				transition: all 0.2s ease;
+				background: var(--wpdm-color-white);
+				color: var(--wpdm-color-secondary);
+			}
+			
+			.wpdm-variation-table .wpdm-table-qty-input:focus {
+				outline: none;
+				border-color: var(--wpdm-color-primary);
+				box-shadow: 0 0 0 3px rgba(110, 193, 228, 0.1);
+			}
+			
 			.wpdm-variation-table .wpdm-table-qty-input:invalid {
-				border-color: #dc3232;
+				border-color: #dc3545;
 			}
+			
+			.wpdm-variation-table .wpdm-table-unavailable {
+				color: var(--wpdm-color-text);
+				font-size: 1.2em;
+			}
+			
+			.wpdm-variation-table .wpdm-row-total,
+			.wpdm-variation-table .wpdm-col-total {
+				font-weight: 600;
+				color: var(--wpdm-color-secondary);
+				background: var(--wpdm-color-bg-light);
+			}
+			
+			.wpdm-variation-table .wpdm-table-totals-row {
+				background: linear-gradient(135deg, var(--wpdm-color-bg-light) 0%, rgba(241, 241, 241, 0.5) 100%);
+				font-weight: 600;
+			}
+			
+			.wpdm-variation-table .wpdm-table-totals-row td {
+				border-top: 2px solid rgba(0, 0, 0, 0.1);
+				border-bottom: none;
+			}
+			
+			.wpdm-variation-table .wpdm-table-totals-label {
+				text-align: left;
+				color: var(--wpdm-color-secondary);
+			}
+			
+			.wpdm-variation-table .wpdm-grand-total {
+				font-size: 1.1em;
+				color: var(--wpdm-color-blue-dark);
+				font-weight: 700;
+			}
+			
+			.wpdm-table-summary {
+				margin: 1.5em 0;
+				padding: 1.25em;
+				background: linear-gradient(135deg, var(--wpdm-color-bg-light) 0%, var(--wpdm-color-white) 100%);
+				border: 1px solid rgba(0, 0, 0, 0.08);
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+			}
+			
+			.wpdm-table-summary > div {
+				margin-bottom: 0.75em;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 0.95em;
+			}
+			
+			.wpdm-table-summary > div:last-child {
+				margin-bottom: 0;
+			}
+			
+			.wpdm-table-summary strong {
+				color: var(--wpdm-color-secondary);
+				font-weight: 500;
+			}
+			
+			.wpdm-table-summary .wpdm-total-quantity,
+			.wpdm-table-summary .wpdm-unit-price {
+				color: var(--wpdm-color-primary);
+				font-weight: 600;
+			}
+			
+			.wpdm-table-summary .wpdm-table-total-price {
+				margin-top: 0.75em;
+				padding-top: 0.75em;
+				border-top: 2px solid rgba(0, 0, 0, 0.1);
+				font-size: 1.15em;
+			}
+			
+			.wpdm-table-summary .wpdm-table-total-price strong {
+				font-weight: 600;
+				color: var(--wpdm-color-secondary);
+			}
+			
+			.wpdm-table-summary .wpdm-total-price {
+				color: var(--wpdm-color-blue-dark);
+				font-weight: 700;
+				font-size: 1.1em;
+			}
+			
+			.wpdm-add-table-to-cart {
+				padding: 14px 32px;
+				font-size: 1em;
+				margin-top: 1.5em;
+				border-radius: 6px;
+				transition: all 0.3s ease;
+				font-weight: 500;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				background-color: var(--wpdm-color-accent);
+				color: var(--wpdm-color-white);
+				border: none;
+			}
+			
 			.wpdm-add-table-to-cart:disabled {
 				opacity: 0.5;
 				cursor: not-allowed;
+			}
+			
+			.wpdm-add-table-to-cart:not(:disabled):hover {
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(97, 206, 112, 0.3);
+				background-color: var(--wpdm-color-accent);
+				opacity: 0.9;
+			}
+			
+			@media (max-width: 768px) {
+				.wpdm-variation-table-title {
+					font-size: 1.1em;
+				}
+				
+				.wpdm-variation-table th,
+				.wpdm-variation-table td {
+					padding: 10px 8px;
+					font-size: 0.85em;
+				}
+				
+				.wpdm-variation-table .wpdm-table-qty-input {
+					width: 60px;
+					padding: 6px;
+				}
+				
+				.wpdm-table-summary {
+					padding: 1em;
+				}
+				
+				.wpdm-table-summary > div {
+					flex-direction: column;
+					align-items: flex-start;
+					gap: 0.25em;
+				}
 			}
 			
 			/* Estilos para notificación de éxito */
@@ -674,7 +930,49 @@ class WPDM_Variation_Table {
 				},
 
 				formatPrice: function(price) {
-					return parseFloat(price).toFixed(2).replace('.', ',') + ' €';
+					price = parseFloat(price) || 0;
+					
+					// Obtener configuración de moneda desde los datos de la tabla
+					var $tableData = $('.wpdm-table-data');
+					if (!$tableData.length) {
+						// Fallback si no hay datos
+						return price.toFixed(2) + ' €';
+					}
+					
+					var data = JSON.parse($tableData.val());
+					var currencyConfig = data.currency_config || {
+						symbol: '€',
+						position: 'right',
+						decimals: 2,
+						decimalSep: ',',
+						thousandSep: ''
+					};
+					
+					// Formatear número con decimales y separadores
+					var formatted = price.toFixed(currencyConfig.decimals);
+					
+					// Aplicar separador de miles si es necesario
+					if (currencyConfig.thousandSep) {
+						var parts = formatted.split('.');
+						parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, currencyConfig.thousandSep);
+						formatted = parts.join(currencyConfig.decimalSep);
+					} else {
+						formatted = formatted.replace('.', currencyConfig.decimalSep);
+					}
+					
+					// Aplicar posición del símbolo según configuración de WooCommerce
+					switch(currencyConfig.position) {
+						case 'left':
+							return currencyConfig.symbol + formatted;
+						case 'right':
+							return formatted + ' ' + currencyConfig.symbol;
+						case 'left_space':
+							return currencyConfig.symbol + ' ' + formatted;
+						case 'right_space':
+							return formatted + ' ' + currencyConfig.symbol;
+						default:
+							return currencyConfig.symbol + formatted;
+					}
 				},
 
 				addToCart: function($button) {

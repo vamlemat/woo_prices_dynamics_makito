@@ -70,6 +70,13 @@ class WPDM_Frontend {
 			return;
 		}
 
+		// Obtener configuración de formato de moneda de WooCommerce
+		$currency_symbol = get_woocommerce_currency_symbol();
+		$currency_pos = get_option( 'woocommerce_currency_pos', 'left' );
+		$price_decimals = wc_get_price_decimals();
+		$price_decimal_sep = wc_get_price_decimal_separator();
+		$price_thousand_sep = wc_get_price_thousand_separator();
+
 		?>
 		<script type="text/javascript">
 		(function($) {
@@ -109,6 +116,15 @@ class WPDM_Frontend {
 			var priceTiers = <?php echo wp_json_encode( $price_tiers, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?>;
 			var variationsTiers = <?php echo wp_json_encode( $variations_tiers, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?>;
 			var isVariable = <?php echo $product->is_type( 'variable' ) ? 'true' : 'false'; ?>;
+			
+			// Configuración de formato de moneda desde WooCommerce
+			var currencyConfig = {
+				symbol: <?php echo wp_json_encode( $currency_symbol ); ?>,
+				position: <?php echo wp_json_encode( $currency_pos ); ?>,
+				decimals: <?php echo absint( $price_decimals ); ?>,
+				decimalSep: <?php echo wp_json_encode( $price_decimal_sep ); ?>,
+				thousandSep: <?php echo wp_json_encode( $price_thousand_sep ); ?>
+			};
 
 			WPDMLogger.info('Frontend', 'Price tiers script initialized', {
 				productId: <?php echo esc_js( $product_id ); ?>,
@@ -143,7 +159,32 @@ class WPDM_Frontend {
 
 			function formatPrice(price) {
 				price = parseFloat(price) || 0;
-				return price.toFixed(2).replace('.', ',') + ' €';
+				
+				// Formatear número con decimales y separadores
+				var formatted = price.toFixed(currencyConfig.decimals);
+				
+				// Aplicar separador de miles si es necesario
+				if (currencyConfig.thousandSep) {
+					var parts = formatted.split('.');
+					parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, currencyConfig.thousandSep);
+					formatted = parts.join(currencyConfig.decimalSep);
+				} else {
+					formatted = formatted.replace('.', currencyConfig.decimalSep);
+				}
+				
+				// Aplicar posición del símbolo según configuración de WooCommerce
+				switch(currencyConfig.position) {
+					case 'left':
+						return currencyConfig.symbol + formatted;
+					case 'right':
+						return formatted + ' ' + currencyConfig.symbol;
+					case 'left_space':
+						return currencyConfig.symbol + ' ' + formatted;
+					case 'right_space':
+						return formatted + ' ' + currencyConfig.symbol;
+					default:
+						return currencyConfig.symbol + formatted;
+				}
 			}
 
 			function updatePriceDisplay() {
@@ -226,29 +267,33 @@ class WPDM_Frontend {
 				}
 				
 				if ($priceElement && $priceElement.length && foundSelector) {
+					var formattedPrice = formatPrice(unit);
+					
 					// Si el elemento contiene un span con la clase amount, actualizar ese
 					var $amountSpan = $priceElement.find('.amount, .woocommerce-Price-amount').first();
 					if ($amountSpan.length) {
-						$amountSpan.text(formatPrice(unit));
+						// Usar html() en lugar de text() para que el símbolo € se muestre correctamente
+						$amountSpan.html(formattedPrice);
 						WPDMLogger.debug('Frontend', 'Price amount span updated', { 
 							selector: foundSelector,
-							price: formatPrice(unit) 
+							price: formattedPrice 
 						});
 					} else if ($priceElement.is('h1, h2, h3, h4, h5, h6')) {
 						// Si es un heading (como h2 en .precio-producto), actualizar directamente
-						$priceElement.text(formatPrice(unit));
+						// Usar html() para que el símbolo € se muestre correctamente
+						$priceElement.html(formattedPrice);
 						WPDMLogger.debug('Frontend', 'Price heading updated', { 
 							selector: foundSelector,
-							price: formatPrice(unit) 
+							price: formattedPrice 
 						});
 					} else {
 						// Si no tiene span, actualizar el texto del elemento principal
 						var currentText = $priceElement.text();
-						// Intentar mantener el formato original si es posible
-						$priceElement.html('<span class="amount">' + formatPrice(unit) + '</span>');
+						// Usar html() para mantener el formato y mostrar correctamente el símbolo
+						$priceElement.html('<span class="amount">' + formattedPrice + '</span>');
 						WPDMLogger.debug('Frontend', 'Price element updated', { 
 							selector: foundSelector,
-							price: formatPrice(unit),
+							price: formattedPrice,
 							originalText: currentText
 						});
 					}
@@ -287,8 +332,10 @@ class WPDM_Frontend {
 				// Si existe un elemento para mostrar el total personalizado
 				var $totalElement = $('.makito-total-price .amount').first();
 				if ($totalElement.length) {
-					$totalElement.text(formatPrice(total));
-					WPDMLogger.debug('Frontend', 'Total element updated', { total: formatPrice(total) });
+					var formattedTotal = formatPrice(total);
+					// Usar html() en lugar de text() para que el símbolo € se muestre correctamente
+					$totalElement.html(formattedTotal);
+					WPDMLogger.debug('Frontend', 'Total element updated', { total: formattedTotal });
 				}
 			}
 
