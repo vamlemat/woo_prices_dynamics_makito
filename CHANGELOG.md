@@ -5,6 +5,172 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.3.4] - 2025-01-02
+
+### 🎉 Versión Mayor - Sistema de Personalización de Productos (Fase 1 Completa)
+
+Esta versión introduce la **Fase 1** del sistema de personalización de productos con áreas de marcaje y técnicas de marcación.
+
+### ✨ Nuevas Características Implementadas
+
+- **Sistema de botones de personalización:**
+  - Dos botones lado a lado en la tabla de variaciones: "Añadir sin personalizar" y "Añadir con personalización"
+  - Botones con estilo consistente (clase `button alt`)
+  - Habilitación/deshabilitación automática según cantidades seleccionadas
+  - Posicionamiento responsive con flexbox
+
+- **Modal interactivo de personalización:**
+  - Modal con overlay oscuro y animación de apertura/cierre
+  - Header con título "Personalizar Producto" y botón de cerrar (X)
+  - Body con scroll automático para contenido largo
+  - Footer con total de personalización y botones de acción
+  - Estilos críticos inline con `!important` para garantizar visibilidad
+  - Compatible con Elementor y otros page builders
+
+- **Sistema de áreas de marcaje:**
+  - Carga de áreas desde el meta `marking_areas` del producto (repeater de JetEngine)
+  - Agrupación automática de áreas por `print_area_id` (evita duplicados)
+  - Ordenamiento numérico de áreas (Area 1, Area 2, ..., Area 9)
+  - Cada área muestra su posición, dimensiones máximas, máximo de colores e imagen
+  - Checkboxes para activar/desactivar áreas
+  - Expansión/colapso del formulario de cada área
+
+- **Selector de técnicas de marcación:**
+  - Dropdown con todas las técnicas disponibles para cada área
+  - Carga desde el CPT `tecnicas-marcacion` usando `technique_ref`
+  - Soporte para múltiples técnicas por área (ej: Area 8 con SERIGRAFIA y DIGITAL 360)
+  - Opción "Selecciona una técnica..." como placeholder
+
+- **Campos de personalización por área:**
+  - **Técnica de marcación:** Dropdown con todas las opciones disponibles
+  - **Número de colores:** Selector de 1 a N colores (respetando `max_colors`)
+  - **Medida de impresión:** Inputs para ancho x alto en mm
+  - **Repetición Cliché:** Checkbox para indicar repetición
+  - **Observaciones:** Textarea para comentarios adicionales
+
+- **Modo de personalización: Global vs Por Color:**
+  - Pregunta inicial: "¿Desea marcar todos los colores de este artículo de la misma forma?"
+  - Opción "Sí (Global)": Muestra las áreas una sola vez para todas las variaciones
+  - Opción "No (Por color)": Crea un acordeón por cada variación seleccionada en la tabla
+  - Detección automática de variaciones con cantidad > 0 (color + talla)
+  - Acordeones colapsables con header azul mostrando "Color - Talla (cantidad uds)"
+  - Solo un acordeón abierto a la vez para facilitar navegación
+  - Event handling correcto: clics en elementos internos no cierran el acordeón
+
+- **Integración con tabla de variaciones:**
+  - Detección de variaciones seleccionadas desde la tabla (color + talla + cantidad)
+  - Extracción de nombres de color desde `td.wpdm-table-row-label .wpdm-color-name`
+  - Extracción de tallas desde headers de columnas (`thead th`)
+  - Agrupación de variaciones por `variation_id` con suma de cantidades
+
+### 🔧 Mejoras Técnicas
+
+- **Arquitectura de clases:**
+  - `WPDM_Customization`: Lógica de backend (AJAX, cálculos, datos)
+  - `WPDM_Customization_Frontend`: Lógica de frontend (modal, UI, eventos)
+  - Separación clara de responsabilidades
+
+- **Endpoints AJAX:**
+  - `wpdm_get_customization_data`: Obtiene áreas y técnicas del producto
+  - `wpdm_calculate_customization_price`: Calcula precios (pendiente implementar)
+  - `wpdm_upload_customization_image`: Upload de imágenes (pendiente implementar)
+  - `wpdm_add_customized_to_cart`: Añade al carrito con personalización (pendiente implementar)
+
+- **JavaScript inline:**
+  - Todo el código JS está inline en el modal para evitar problemas de carga
+  - Event listeners con `$(document).on()` para elementos dinámicos
+  - `$(document).off()` antes de re-enlazar eventos para evitar duplicados
+  - Uso de `$modal.data()` para almacenar estado (áreas, variaciones seleccionadas)
+  - Funciones auxiliares: `renderGlobal()`, `renderByColor()`, `renderAreaItem()`
+
+- **Manejo de datos:**
+  - Agrupación de áreas por `print_area_id` en PHP usando `usort()`
+  - Ordenamiento numérico con regex: `/\d+/` para extraer números de "Area X"
+  - Almacenamiento de técnicas como array en cada área agrupada
+  - Detección robusta de variaciones con fallbacks múltiples
+
+### 🐛 Correcciones
+
+- Corregido: Modal no visible (faltaba `display: block !important`)
+- Corregido: Scroll no funcionaba en modal (añadido `overflow-y: auto`)
+- Corregido: Áreas duplicadas cuando tienen múltiples técnicas (agrupación por `print_area_id`)
+- Corregido: Campo Pantone eliminado (no corresponde en este flujo)
+- Corregido: Áreas desordenadas (implementado ordenamiento numérico)
+- Corregido: Color vacío en modo por color (selector incorrecto, ahora usa `.wpdm-color-name`)
+- Corregido: Acordeones se cierran al hacer clic dentro (añadido `e.stopPropagation()`)
+- Corregido: Función `hideNotification` no definida en tabla de variaciones (añadido `var self = this`)
+
+### 📋 Pendiente para Fase 2
+
+- Upload de imágenes por área
+- Cálculo de precios en tiempo real (técnica, cliché, colores adicionales)
+- Validación de campos obligatorios
+- Añadir al carrito con datos de personalización
+- Guardar personalización en meta del pedido
+- Mostrar personalización en el carrito y en el pedido
+
+### 🔄 Versiones de desarrollo (2.0.0 - 2.3.4)
+
+Durante el desarrollo se crearon múltiples versiones para debugging:
+- 2.0.0-2.0.9: Implementación inicial del modal y botones
+- 2.1.0: Mejoras en estilos y posicionamiento de botones
+- 2.2.0-2.2.2: Implementación de campos completos y agrupación de áreas
+- 2.3.0-2.3.4: Implementación de modo por color con acordeones
+  - Visualización de información de personalización en el carrito
+
+- **Integración con pedidos:**
+  - Datos completos de personalización guardados en el pedido
+  - Metadatos detallados por área (técnica, colores, dimensiones, imágenes)
+  - Resumen de personalización para fácil visualización en admin
+  - Precio de personalización guardado por separado
+
+### 🔧 Mejoras Técnicas
+
+- **Nuevas clases:**
+  - `WPDM_Customization`: Gestión de personalización (obtener áreas, técnicas, calcular precios)
+  - `WPDM_Customization_Frontend`: Frontend y modal de personalización
+
+- **Nuevos archivos:**
+  - `assets/js/wpdm-customization.js`: JavaScript del modal y lógica de personalización
+  - `assets/css/wpdm-customization.css`: Estilos del modal y formulario
+
+- **Endpoints AJAX:**
+  - `wpdm_get_customization_data`: Obtener áreas y técnicas disponibles
+  - `wpdm_calculate_customization_price`: Calcular precio de personalización
+  - `wpdm_upload_customization_image`: Subir imágenes de personalización
+  - `wpdm_add_customized_to_cart`: Añadir producto personalizado al carrito
+
+- **Modificaciones en clases existentes:**
+  - `WPDM_Cart_Adjustments`: Aplicación de precios de personalización en carrito
+  - `WPDM_Order_Meta`: Guardado de personalización en pedidos
+
+### 📦 Estructura de Datos
+
+- **Áreas de marcaje:** Repeater `marking_areas` en producto con campos:
+  - `print_area_id`, `technique_ref`, `position`, `max_colors`, `width`, `height`, `area_img`
+  
+- **Técnicas de marcación:** CPT `tecnicas-marcacion` con:
+  - Campos: `technique_ref`, `col_inc`, `cliche`, `cliche_repetition`, `min`, `code`
+  - Repeater `precio_escalas`: `section_desde`, `section_hasta`, `price`, `price_col`, `price_cm`
+
+### 🎨 Mejoras de UX
+
+- Modal responsive y moderno
+- Cálculo de precios en tiempo real
+- Validación de campos antes de añadir al carrito
+- Notificaciones de éxito/error
+- Vista previa de imágenes subidas
+- Interfaz intuitiva y clara
+
+### 📝 Notas
+
+- El coste de cliché se aplica por cada área de trabajo (cada área lleva su fotolito)
+- Las imágenes se guardan en carpeta independiente para facilitar limpieza periódica
+- Compatible con productos simples y variables
+- No interfiere con la tabla de variaciones existente
+
+---
+
 ## [1.4.1] - 2025-01-XX
 
 ### 🐛 Correcciones

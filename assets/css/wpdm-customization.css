@@ -1,0 +1,371 @@
+/* Modal de Personalización */
+.wpdm-customization-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 999999;
+	display: none;
+}
+
+.wpdm-customization-modal-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(2px);
+}
+
+.wpdm-customization-modal-content {
+	position: relative;
+	background: #fff;
+	max-width: 900px;
+	max-height: 90vh;
+	margin: 5vh auto;
+	border-radius: 8px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.wpdm-customization-modal-header {
+	padding: 20px 30px;
+	border-bottom: 1px solid #e0e0e0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background: linear-gradient(135deg, #0464AC 0%, #061B46 100%);
+	color: #fff;
+}
+
+.wpdm-customization-modal-header h2 {
+	margin: 0;
+	font-size: 1.5em;
+	font-weight: 600;
+	color: #fff;
+}
+
+.wpdm-customization-modal-close {
+	background: transparent;
+	border: none;
+	color: #fff;
+	font-size: 32px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0;
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: opacity 0.2s;
+}
+
+.wpdm-customization-modal-close:hover {
+	opacity: 0.7;
+}
+
+.wpdm-customization-modal-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 30px;
+}
+
+.wpdm-customization-loading {
+	text-align: center;
+	padding: 40px;
+}
+
+.wpdm-customization-quantity-wrapper {
+	margin-bottom: 30px;
+	padding-bottom: 20px;
+	border-bottom: 2px solid #e0e0e0;
+}
+
+.wpdm-customization-quantity-wrapper label {
+	display: block;
+	margin-bottom: 10px;
+	font-weight: 600;
+	color: #54595F;
+}
+
+.wpdm-customization-quantity {
+	width: 120px;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 1em;
+}
+
+.wpdm-customization-areas {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.wpdm-area-item {
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	overflow: hidden;
+	transition: box-shadow 0.2s;
+}
+
+.wpdm-area-item:hover {
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.wpdm-area-header {
+	padding: 15px 20px;
+	background: #f5f5f5;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+}
+
+.wpdm-area-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+	margin: 0;
+	flex: 1;
+}
+
+.wpdm-area-checkbox-label input[type="checkbox"] {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+
+.wpdm-area-preview-img {
+	max-width: 80px;
+	max-height: 80px;
+	object-fit: contain;
+	border-radius: 4px;
+	border: 1px solid #ddd;
+}
+
+.wpdm-area-content {
+	padding: 20px;
+	background: #fff;
+}
+
+.wpdm-area-info {
+	margin-bottom: 20px;
+	padding: 15px;
+	background: #f9f9f9;
+	border-radius: 4px;
+}
+
+.wpdm-area-info p {
+	margin: 5px 0;
+	font-size: 0.9em;
+	color: #54595F;
+}
+
+.wpdm-area-field {
+	margin-bottom: 20px;
+}
+
+.wpdm-area-field label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 500;
+	color: #54595F;
+	font-size: 0.95em;
+}
+
+.wpdm-area-field input[type="text"],
+.wpdm-area-field input[type="number"],
+.wpdm-area-field select,
+.wpdm-area-field textarea {
+	width: 100%;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.95em;
+	transition: border-color 0.2s;
+}
+
+.wpdm-area-field input:focus,
+.wpdm-area-field select:focus,
+.wpdm-area-field textarea:focus {
+	outline: none;
+	border-color: #6EC1E4;
+	box-shadow: 0 0 0 3px rgba(110, 193, 228, 0.1);
+}
+
+.wpdm-area-dimensions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.wpdm-area-dimensions input {
+	width: 100px;
+}
+
+.wpdm-area-dimensions span {
+	color: #7A7A7A;
+}
+
+.wpdm-area-images-preview {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.wpdm-area-image-preview {
+	position: relative;
+	width: 100px;
+	height: 100px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.wpdm-area-image-preview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.wpdm-area-image-remove {
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	background: rgba(220, 53, 69, 0.9);
+	color: #fff;
+	border: none;
+	border-radius: 50%;
+	width: 24px;
+	height: 24px;
+	cursor: pointer;
+	font-size: 18px;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.2s;
+}
+
+.wpdm-area-image-remove:hover {
+	background: rgba(220, 53, 69, 1);
+}
+
+.wpdm-customization-modal-footer {
+	padding: 20px 30px;
+	border-top: 1px solid #e0e0e0;
+	background: #f9f9f9;
+}
+
+.wpdm-customization-summary {
+	margin-bottom: 20px;
+	padding: 15px;
+	background: #fff;
+	border-radius: 4px;
+	border: 1px solid #e0e0e0;
+}
+
+.wpdm-customization-total {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 1.2em;
+}
+
+.wpdm-customization-total strong {
+	color: #54595F;
+}
+
+.wpdm-customization-total-price {
+	color: #0464AC;
+	font-weight: 700;
+	font-size: 1.3em;
+}
+
+.wpdm-customization-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 15px;
+}
+
+.wpdm-customization-actions .button {
+	padding: 12px 30px;
+	font-size: 1em;
+	border-radius: 4px;
+	transition: all 0.2s;
+}
+
+.wpdm-customization-cancel {
+	background: #f5f5f5;
+	color: #54595F;
+	border: 1px solid #ddd;
+}
+
+.wpdm-customization-cancel:hover {
+	background: #e0e0e0;
+}
+
+.wpdm-customization-add-to-cart {
+	background: #61CE70;
+	color: #fff;
+	border: none;
+}
+
+.wpdm-customization-add-to-cart:hover:not(:disabled) {
+	background: #4fb85f;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(97, 206, 112, 0.3);
+}
+
+.wpdm-customization-add-to-cart:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Bloquear scroll del body cuando el modal está abierto */
+body.wpdm-modal-open {
+	overflow: hidden;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.wpdm-customization-modal-content {
+		max-width: 95%;
+		margin: 2.5vh auto;
+		max-height: 95vh;
+	}
+
+	.wpdm-customization-modal-header {
+		padding: 15px 20px;
+	}
+
+	.wpdm-customization-modal-header h2 {
+		font-size: 1.2em;
+	}
+
+	.wpdm-customization-modal-body {
+		padding: 20px;
+	}
+
+	.wpdm-customization-modal-footer {
+		padding: 15px 20px;
+	}
+
+	.wpdm-customization-actions {
+		flex-direction: column;
+	}
+
+	.wpdm-customization-actions .button {
+		width: 100%;
+	}
+}
+
+

@@ -164,6 +164,13 @@ class WPDM_Cart_Adjustments {
 					$cart->cart_contents[ $cart_item_key ]['wpdm_tier_qty'] = $total_quantity; // Guardar cantidad total para referencia
 					$cart->cart_contents[ $cart_item_key ]['wpdm_tier_total_qty'] = $total_quantity; // Cantidad total del grupo
 					
+					// Recalcular precio de personalización si existe
+					if ( isset( $cart->cart_contents[ $cart_item_key ]['wpdm_customization'] ) ) {
+						$customization_data = $cart->cart_contents[ $cart_item_key ]['wpdm_customization'];
+						$customization_price = WPDM_Customization::calculate_total_customization_price( $customization_data, $total_quantity );
+						$cart->cart_contents[ $cart_item_key ]['wpdm_customization_price'] = $customization_price['total'];
+					}
+					
 					// Actualizar el objeto del producto en el carrito
 					$cart->cart_contents[ $cart_item_key ]['data'] = $product;
 				}
@@ -250,6 +257,20 @@ class WPDM_Cart_Adjustments {
 			$cart_item_data['wpdm_tier_qty']   = $quantity;
 		}
 
+		// Guardar datos de personalización si existen
+		if ( isset( $_POST['wpdm_customization'] ) || isset( $_REQUEST['wpdm_customization'] ) ) {
+			$customization_json = isset( $_POST['wpdm_customization'] ) ? $_POST['wpdm_customization'] : $_REQUEST['wpdm_customization'];
+			$customization_data = json_decode( stripslashes( $customization_json ), true );
+			
+			if ( is_array( $customization_data ) && ! empty( $customization_data ) ) {
+				// Calcular precio de personalización
+				$customization_price = WPDM_Customization::calculate_total_customization_price( $customization_data, $quantity );
+				
+				$cart_item_data['wpdm_customization'] = $customization_data;
+				$cart_item_data['wpdm_customization_price'] = $customization_price['total'];
+			}
+		}
+
 		return $cart_item_data;
 	}
 
@@ -318,10 +339,12 @@ class WPDM_Cart_Adjustments {
 	 * @return string
 	 */
 	public static function display_cart_item_subtotal( $subtotal_html, $cart_item, $cart_item_key ) {
-		if ( isset( $cart_item['wpdm_tier_price'] ) && isset( $cart_item['quantity'] ) ) {
-			$tier_price = floatval( $cart_item['wpdm_tier_price'] );
-			$quantity   = absint( $cart_item['quantity'] );
-			$subtotal   = $tier_price * $quantity;
+		$tier_price = isset( $cart_item['wpdm_tier_price'] ) ? floatval( $cart_item['wpdm_tier_price'] ) : 0;
+		$quantity   = isset( $cart_item['quantity'] ) ? absint( $cart_item['quantity'] ) : 0;
+		$customization_price = isset( $cart_item['wpdm_customization_price'] ) ? floatval( $cart_item['wpdm_customization_price'] ) : 0;
+		
+		if ( $tier_price > 0 && $quantity > 0 ) {
+			$subtotal = ( $tier_price * $quantity ) + $customization_price;
 			$subtotal_html = wc_price( $subtotal );
 		}
 

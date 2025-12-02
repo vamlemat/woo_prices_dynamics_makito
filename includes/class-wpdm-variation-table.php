@@ -432,13 +432,31 @@ class WPDM_Variation_Table {
 				</div>
 			</div>
 
-			<button 
-				type="button" 
-				class="wpdm-add-table-to-cart button alt" 
-				data-product-id="<?php echo esc_attr( $product->get_id() ); ?>"
-			>
-				<?php esc_html_e( 'Añadir al carrito', 'woo-prices-dynamics-makito' ); ?>
-			</button>
+			<div class="wpdm-table-buttons-wrapper" style="display: flex; gap: 10px; justify-content: center; margin-top: 1em;">
+				<button 
+					type="button" 
+					class="wpdm-add-table-to-cart button alt" 
+					data-product-id="<?php echo esc_attr( $product->get_id() ); ?>"
+				>
+					<?php esc_html_e( 'Añadir sin personalizar', 'woo-prices-dynamics-makito' ); ?>
+				</button>
+
+				<?php
+				// Añadir botón de personalización si la clase existe
+				if ( class_exists( 'WPDM_Customization_Frontend' ) ) {
+					?>
+					<button 
+						type="button" 
+						class="wpdm-add-customized-to-cart button alt" 
+						data-product-id="<?php echo esc_attr( $product->get_id() ); ?>"
+						disabled
+					>
+						<?php esc_html_e( 'Añadir con personalización', 'woo-prices-dynamics-makito' ); ?>
+					</button>
+					<?php
+				}
+				?>
+			</div>
 
 			<input type="hidden" class="wpdm-table-data" value="<?php echo esc_attr( wp_json_encode( array(
 				'product_id' => $product->get_id(),
@@ -1644,6 +1662,7 @@ class WPDM_Variation_Table {
 						$('.wpdm-unit-price').text('—');
 						$('.wpdm-total-price').text('—');
 						$('.wpdm-add-table-to-cart').prop('disabled', true);
+						$('.wpdm-add-customized-to-cart').prop('disabled', true);
 					}
 				},
 
@@ -1693,10 +1712,12 @@ class WPDM_Variation_Table {
 						$('.wpdm-unit-price').text(self.formatPrice(unitPrice));
 						$('.wpdm-total-price').text(self.formatPrice(totalPrice));
 						$('.wpdm-add-table-to-cart').prop('disabled', false);
+						$('.wpdm-add-customized-to-cart').prop('disabled', false);
 					} else {
 						$('.wpdm-unit-price').text('—');
 						$('.wpdm-total-price').text('—');
 						$('.wpdm-add-table-to-cart').prop('disabled', true);
+						$('.wpdm-add-customized-to-cart').prop('disabled', true);
 					}
 				},
 
@@ -1905,6 +1926,8 @@ class WPDM_Variation_Table {
 				},
 
 				showSuccessMessage: function(message) {
+					var self = this;
+					
 					// Crear o obtener el contenedor de notificaciones
 					var $notification = $('.wpdm-cart-notification');
 					
@@ -2131,4 +2154,6 @@ class WPDM_Variation_Table {
 		) );
 	}
 }
+
+
 

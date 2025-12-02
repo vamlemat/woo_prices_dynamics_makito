@@ -82,6 +82,43 @@ class WPDM_Order_Meta {
 				$item->add_meta_data( '_wpdm_tier_source', $source, true );
 			}
 		}
+
+		// Guardar datos de personalización si existen
+		if ( isset( $values['wpdm_customization'] ) && is_array( $values['wpdm_customization'] ) ) {
+			$customization_data = $values['wpdm_customization'];
+			$customization_price = isset( $values['wpdm_customization_price'] ) ? floatval( $values['wpdm_customization_price'] ) : 0;
+
+			// Guardar como JSON en meta
+			$item->add_meta_data( '_wpdm_customization', wp_json_encode( $customization_data, JSON_UNESCAPED_UNICODE ), true );
+			$item->add_meta_data( '_wpdm_customization_price', $customization_price, true );
+
+			// Guardar información detallada de cada área para fácil visualización
+			if ( ! empty( $customization_data['areas'] ) && is_array( $customization_data['areas'] ) ) {
+				$areas_summary = array();
+				foreach ( $customization_data['areas'] as $area_index => $area_data ) {
+					if ( empty( $area_data['enabled'] ) || empty( $area_data['technique_ref'] ) ) {
+						continue;
+					}
+
+					// Obtener nombre de la técnica
+					$technique = WPDM_Customization::get_technique_by_ref( $area_data['technique_ref'] );
+					$technique_name = $technique ? $technique->post_title : $area_data['technique_ref'];
+
+					$areas_summary[] = array(
+						'position' => isset( $area_data['position'] ) ? sanitize_text_field( $area_data['position'] ) : '',
+						'technique' => $technique_name,
+						'colors' => isset( $area_data['colors'] ) ? absint( $area_data['colors'] ) : 1,
+						'width' => isset( $area_data['width'] ) ? sanitize_text_field( $area_data['width'] ) : '',
+						'height' => isset( $area_data['height'] ) ? sanitize_text_field( $area_data['height'] ) : '',
+						'images_count' => isset( $area_data['images'] ) && is_array( $area_data['images'] ) ? count( $area_data['images'] ) : 0,
+					);
+				}
+
+				if ( ! empty( $areas_summary ) ) {
+					$item->add_meta_data( '_wpdm_customization_summary', wp_json_encode( $areas_summary, JSON_UNESCAPED_UNICODE ), true );
+				}
+			}
+		}
 	}
 }
 
