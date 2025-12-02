@@ -465,8 +465,10 @@ class WPDM_Customization_Frontend {
 						
 						console.log('[WPDM] Modal visible:', $modal.is(':visible'));
 						
-						// Guardar las variaciones seleccionadas en el modal para uso posterior
+						// Guardar las variaciones seleccionadas Y el product ID en el modal para uso posterior
 						$modal.data('selected-variations', selectedVariations);
+						$modal.data('product-id', productId);
+						console.log('[WPDM] 💾 Guardado en modal - Product ID:', productId, 'Variaciones:', selectedVariations.length);
 						
 						// Mostrar loading
 						$modal.find('.wpdm-customization-loading').show();
@@ -499,10 +501,11 @@ class WPDM_Customization_Frontend {
 									html += '</div>';
 									html += '</div>';
 									
-									// Renderizar áreas
-									html += '<div class="wpdm-customization-areas">';
-									response.data.areas.forEach(function(area, index) {
-										html += '<div class="wpdm-area-item" data-area-index="' + index + '" style="border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
+									// ===== DEFINICIÓN DE FUNCIÓN renderAreaItem (debe estar ANTES de su uso) =====
+									function renderAreaItem(area, index, variation) {
+										console.log('[WPDM] renderAreaItem llamado para área:', area.position, 'variation:', variation);
+										var uniqueId = variation ? 'var-' + variation.variation_id + '-area-' + index : 'global-area-' + index;
+										var html = '<div class="wpdm-area-item" data-area-index="' + index + '" data-unique-id="' + uniqueId + '" style="border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
 										html += '<div class="wpdm-area-header" style="padding: 15px 20px; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">';
 										html += '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; flex: 1;">';
 										html += '<input type="checkbox" class="wpdm-area-enabled" style="width: 20px; height: 20px;">';
@@ -514,8 +517,16 @@ class WPDM_Customization_Frontend {
 										html += '</div>';
 										html += '<div class="wpdm-area-content" style="display: none; padding: 20px; background: #fff;">';
 										
-										// Info del área
-										html += '<div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;">';
+										// Grid de dos columnas: imagen grande a la izquierda, contenido a la derecha
+										html += '<div class="wpdm-area-content-grid">';
+										
+										// Columna izquierda: Imagen grande
+										html += '<div class="wpdm-area-image-column">';
+										if (area.area_img) {
+											html += '<img src="' + area.area_img + '" alt="' + area.position + '" class="wpdm-area-image-large">';
+										}
+										// Info del área debajo de la imagen
+										html += '<div style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 4px; font-size: 0.9em;">';
 										if (area.position) {
 											html += '<p style="margin: 5px 0;"><strong>Posición:</strong> ' + area.position + '</p>';
 										}
@@ -526,15 +537,19 @@ class WPDM_Customization_Frontend {
 											html += '<p style="margin: 5px 0;"><strong>Máximo de colores:</strong> ' + area.max_colors + '</p>';
 										}
 										html += '</div>';
+										html += '</div>';
 										
-										// Selector de técnica (ahora con todas las técnicas disponibles)
+										// Columna derecha: Formulario
+										html += '<div class="wpdm-area-form-column">';
+										
+										// Selector de técnica
 										html += '<div style="margin-bottom: 15px;">';
 										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Técnica de marcación:</label>';
 										html += '<select class="wpdm-area-technique" data-area-id="' + area.print_area_id + '" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
 										html += '<option value="">Selecciona una técnica...</option>';
 										if (area.techniques && area.techniques.length > 0) {
 											area.techniques.forEach(function(technique) {
-												html += '<option value="' + technique.technique_ref + '" data-technique-name="' + technique.name + '">' + technique.name + '</option>';
+												html += '<option value="' + technique.ref + '" data-technique-name="' + technique.name + '">' + technique.name + '</option>';
 											});
 										}
 										html += '</select>';
@@ -554,19 +569,23 @@ class WPDM_Customization_Frontend {
 										html += '<div style="margin-bottom: 15px;">';
 										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Medida de impresión:</label>';
 										html += '<div style="display: flex; align-items: center; gap: 10px;">';
-										html += '<input type="text" class="wpdm-area-width" placeholder="' + (area.width || 'Ancho') + '" value="" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
+										html += '<input type="number" class="wpdm-area-width" placeholder="' + (area.width || 'Ancho') + '" value="' + (area.width || '') + '" step="0.1" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
 										html += '<span>x</span>';
-										html += '<input type="text" class="wpdm-area-height" placeholder="' + (area.height || 'Alto') + '" value="" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
+										html += '<input type="number" class="wpdm-area-height" placeholder="' + (area.height || 'Alto') + '" value="' + (area.height || '') + '" step="0.1" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
 										html += '<span>mm</span>';
 										html += '</div>';
 										html += '</div>';
 										
 										// Repetición cliché
 										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">';
+										html += '<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">';
 										html += '<input type="checkbox" class="wpdm-area-cliche-repetition">';
 										html += '<span>Repetición Cliché</span>';
 										html += '</label>';
+										html += '<div class="wpdm-cliche-order-number-wrapper" style="display: none; margin-top: 8px; padding-left: 28px;">';
+										html += '<label style="display: block; margin-bottom: 5px; font-size: 0.9em; color: #666;">Nº de pedido anterior:</label>';
+										html += '<input type="text" class="wpdm-area-cliche-order-number" placeholder="Ej: 12345" style="width: 100%; max-width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em;">';
+										html += '</div>';
 										html += '</div>';
 										
 										// Observaciones
@@ -575,8 +594,18 @@ class WPDM_Customization_Frontend {
 										html += '<textarea class="wpdm-area-observations" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>';
 										html += '</div>';
 										
-										html += '</div>';
-										html += '</div>';
+										html += '</div>'; // Cierre wpdm-area-form-column
+										html += '</div>'; // Cierre wpdm-area-content-grid
+										html += '</div>'; // Cierre wpdm-area-content
+										html += '</div>'; // Cierre wpdm-area-item
+										return html;
+									}
+									// ===== FIN DEFINICIÓN renderAreaItem =====
+									
+									// Renderizar áreas usando la función
+									html += '<div class="wpdm-customization-areas">';
+									response.data.areas.forEach(function(area, index) {
+										html += renderAreaItem(area, index, null);
 									});
 									html += '</div>';
 									
@@ -668,86 +697,7 @@ class WPDM_Customization_Frontend {
 										});
 									}
 									
-									// Función auxiliar para renderizar un item de área
-									function renderAreaItem(area, index, variation) {
-										var uniqueId = variation ? 'var-' + variation.variation_id + '-area-' + index : 'global-area-' + index;
-										var html = '<div class="wpdm-area-item" data-area-index="' + index + '" data-unique-id="' + uniqueId + '" style="border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
-										html += '<div class="wpdm-area-header" style="padding: 15px 20px; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">';
-										html += '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; flex: 1;">';
-										html += '<input type="checkbox" class="wpdm-area-enabled" style="width: 20px; height: 20px;">';
-										html += '<strong>Zona de impresión - ' + (area.position || 'Área ' + (index + 1)) + '</strong>';
-										html += '</label>';
-										if (area.area_img) {
-											html += '<img src="' + area.area_img + '" alt="' + area.position + '" style="max-width: 80px; max-height: 80px; border-radius: 4px; border: 1px solid #ddd;">';
-										}
-										html += '</div>';
-										html += '<div class="wpdm-area-content" style="display: none; padding: 20px; background: #fff;">';
-										
-										// Info del área
-										html += '<div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;">';
-										if (area.position) {
-											html += '<p style="margin: 5px 0;"><strong>Posición:</strong> ' + area.position + '</p>';
-										}
-										if (area.width && area.height) {
-											html += '<p style="margin: 5px 0;"><strong>Dimensiones máximas:</strong> ' + area.width + ' x ' + area.height + ' mm</p>';
-										}
-										if (area.max_colors) {
-											html += '<p style="margin: 5px 0;"><strong>Máximo de colores:</strong> ' + area.max_colors + '</p>';
-										}
-										html += '</div>';
-										
-										// Selector de técnica
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Técnica de marcación:</label>';
-										html += '<select class="wpdm-area-technique" data-area-id="' + area.print_area_id + '" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
-										html += '<option value="">Selecciona una técnica...</option>';
-										if (area.techniques && area.techniques.length > 0) {
-											area.techniques.forEach(function(technique) {
-												html += '<option value="' + technique.technique_ref + '" data-technique-name="' + technique.name + '">' + technique.name + '</option>';
-											});
-										}
-										html += '</select>';
-										html += '</div>';
-										
-										// Selector de colores
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Número de colores:</label>';
-										html += '<select class="wpdm-area-colors" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
-										for (var i = 1; i <= (area.max_colors || 4); i++) {
-											html += '<option value="' + i + '">' + i + ' COLOR' + (i > 1 ? 'ES' : '') + '</option>';
-										}
-										html += '</select>';
-										html += '</div>';
-										
-										// Dimensiones personalizadas
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Medida de impresión:</label>';
-										html += '<div style="display: flex; align-items: center; gap: 10px;">';
-										html += '<input type="text" class="wpdm-area-width" placeholder="' + (area.width || 'Ancho') + '" value="" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
-										html += '<span>x</span>';
-										html += '<input type="text" class="wpdm-area-height" placeholder="' + (area.height || 'Alto') + '" value="" style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
-										html += '<span>mm</span>';
-										html += '</div>';
-										html += '</div>';
-										
-										// Repetición cliché
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">';
-										html += '<input type="checkbox" class="wpdm-area-cliche-repetition">';
-										html += '<span>Repetición Cliché</span>';
-										html += '</label>';
-										html += '</div>';
-										
-										// Observaciones
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Observaciones:</label>';
-										html += '<textarea class="wpdm-area-observations" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>';
-										html += '</div>';
-										
-										html += '</div>';
-										html += '</div>';
-										return html;
-									}
+									// Función auxiliar renderAreaItem ya definida arriba
 									
 									// Event listener para checkboxes de áreas
 									$(document).off('change', '.wpdm-area-enabled').on('change', '.wpdm-area-enabled', function(e) {
@@ -755,12 +705,242 @@ class WPDM_Customization_Frontend {
 										var $areaItem = $(this).closest('.wpdm-area-item');
 										var enabled = $(this).is(':checked');
 										$areaItem.find('.wpdm-area-content').toggle(enabled);
+										// Recalcular precios
+										calculatePrices();
+									});
+									
+									// Event listeners para cambios que afectan el precio
+									$(document).off('change', '.wpdm-area-technique, .wpdm-area-colors, .wpdm-area-cliche-repetition').on('change', '.wpdm-area-technique, .wpdm-area-colors, .wpdm-area-cliche-repetition', function() {
+										// Si es el checkbox de repetición cliché, mostrar/ocultar campo de nº pedido
+										if ($(this).hasClass('wpdm-area-cliche-repetition')) {
+											var $areaItem = $(this).closest('.wpdm-area-item');
+											var isChecked = $(this).is(':checked');
+											$areaItem.find('.wpdm-cliche-order-number-wrapper').toggle(isChecked);
+											console.log('[WPDM] Repetición cliché:', isChecked ? 'ACTIVADA' : 'DESACTIVADA');
+										}
+										calculatePrices();
 									});
 									
 									// Evitar que los clics en el header del área cierren el acordeón
 									$(document).off('click', '.wpdm-area-header').on('click', '.wpdm-area-header', function(e) {
 										e.stopPropagation(); // Evitar que el evento suba al acordeón
 									});
+									
+									// Función para calcular precios en tiempo real
+									function calculatePrices() {
+										console.group('💰 [WPDM] Calculando precios...');
+										
+										var productId = $modal.data('product-id');
+										var variations = $modal.data('selected-variations') || [];
+										var totalQuantity = 0;
+										
+										console.log('Product ID:', productId);
+										console.log('Variations guardadas:', variations);
+										
+										// Calcular cantidad total
+										variations.forEach(function(v) {
+											totalQuantity += v.quantity;
+										});
+										
+										console.log('Cantidad total:', totalQuantity);
+										
+										if (totalQuantity <= 0) {
+											console.warn('[WPDM] ⚠️ Cantidad total es 0, no se calculan precios');
+											console.groupEnd();
+											return;
+										}
+										
+										// Recopilar datos de personalización
+										var customizationData = {
+											mode: $('input[name="wpdm-customization-mode"]:checked').val() || 'global',
+											areas: []
+										};
+										
+										console.log('Modo de personalización:', customizationData.mode);
+										console.log('Total áreas en DOM:', $('.wpdm-area-item').length);
+										
+										$('.wpdm-area-item').each(function(index) {
+											var $area = $(this);
+											var enabled = $area.find('.wpdm-area-enabled').is(':checked');
+											
+											console.log('Área ' + index + ' - Habilitada:', enabled);
+											
+											if (!enabled) return;
+											
+											var techniqueSelect = $area.find('.wpdm-area-technique');
+											var techniqueRef = techniqueSelect.val();
+											
+											console.log('Área ' + index + ' - Técnica seleccionada:', techniqueRef);
+											
+											if (!techniqueRef) {
+												console.warn('Área ' + index + ' - Sin técnica seleccionada, se omite');
+												return;
+											}
+											
+											// Determinar la cantidad para esta área específica
+											var areaQuantity = totalQuantity; // Por defecto, cantidad global
+											
+											// Si estamos en modo "por color", buscar la cantidad específica de este color
+											if (customizationData.mode === 'per-color') {
+												var $accordion = $area.closest('.wpdm-color-accordion');
+												if ($accordion.length > 0) {
+													var variationIndex = $accordion.find('.wpdm-color-accordion-header').data('variation-index');
+													console.log('Área ' + index + ' - Pertenece a variación index:', variationIndex);
+													
+													if (variations[variationIndex]) {
+														areaQuantity = variations[variationIndex].quantity;
+														console.log('Área ' + index + ' - Cantidad específica del color:', areaQuantity);
+													}
+												}
+											}
+											
+											var areaData = {
+												enabled: true,
+												technique_ref: techniqueRef,
+												colors: parseInt($area.find('.wpdm-area-colors').val()) || 1,
+												width: parseFloat($area.find('.wpdm-area-width').val()) || 0,
+												height: parseFloat($area.find('.wpdm-area-height').val()) || 0,
+												cliche_repetition: $area.find('.wpdm-area-cliche-repetition').is(':checked'),
+												cliche_order_number: $area.find('.wpdm-area-cliche-order-number').val() || '',
+												quantity: areaQuantity // Cantidad específica para esta área
+											};
+											
+											console.log('Área ' + index + ' - Datos:', areaData);
+											customizationData.areas.push(areaData);
+										});
+										
+										console.log('Total áreas habilitadas con técnica:', customizationData.areas.length);
+										console.log('Datos de personalización completos:', customizationData);
+										
+										// Hacer petición AJAX para calcular precio
+										var ajaxData = {
+											action: 'wpdm_calculate_customization_price',
+											nonce: wpdmCustomization.nonce,
+											product_id: productId,
+											total_quantity: totalQuantity,
+											customization_data: JSON.stringify(customizationData)
+										};
+										
+										console.log('📤 Enviando AJAX:', ajaxData);
+										
+										$.ajax({
+											url: wpdmCustomization.ajax_url,
+											type: 'POST',
+											data: ajaxData,
+											success: function(response) {
+												console.log('📥 Respuesta AJAX recibida:', response);
+												
+												if (response.success && response.data) {
+													var data = response.data;
+													
+													console.log('✅ Cálculo exitoso:');
+													console.log('  - Precio base total:', data.base_total);
+													console.log('  - Total personalización:', data.customization_total);
+													console.log('  - Gran total:', data.grand_total);
+													console.log('  - Desglose por áreas:', data.areas);
+													
+													// Formatear precios (símbolo € hardcoded para evitar problemas de encoding)
+													var baseTotal = parseFloat(data.base_total).toFixed(2).replace('.', ',');
+													var customizationTotal = parseFloat(data.customization_total).toFixed(2).replace('.', ',');
+													var grandTotal = parseFloat(data.grand_total).toFixed(2).replace('.', ',');
+													
+													// Actualizar UI con símbolo € directo
+													$('.wpdm-base-total-price').text(baseTotal + ' €');
+													$('.wpdm-customization-total-price').text(customizationTotal + ' €');
+													$('.wpdm-grand-total-price').text(grandTotal + ' €');
+													
+													// Generar desglose detallado por área
+													var areasDetailHtml = '';
+													if (data.areas && Object.keys(data.areas).length > 0) {
+														$.each(data.areas, function(areaIndex, areaPrice) {
+															var areaNum = parseInt(areaIndex) + 1;
+															areasDetailHtml += '<div class="wpdm-price-area" style="margin: 8px 0; padding: 8px; background: #fafafa; border-left: 3px solid #0464AC; border-radius: 4px;">';
+															areasDetailHtml += '<div style="font-weight: 600; margin-bottom: 5px;">» Área ' + areaNum + '</div>';
+															
+															// Técnica (nombre + precio unitario × cantidad)
+															if (areaPrice.technique_total_price > 0) {
+																var techName = areaPrice.technique_name || 'Técnica';
+																var techQuantity = areaPrice.quantity || totalQuantity; // Usar cantidad específica del área si existe
+																var techUnitPrice = parseFloat(areaPrice.technique_unit_price).toFixed(3).replace('.', ',');
+																var techTotal = parseFloat(areaPrice.technique_total_price).toFixed(2).replace('.', ',');
+																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
+																areasDetailHtml += '<span>' + techName + ' (' + techQuantity + ' uds × ' + techUnitPrice + ' €)</span>';
+																areasDetailHtml += '<span>' + techTotal + ' €</span>';
+																areasDetailHtml += '</div>';
+															}
+															
+															// Colores extra (con detalle de cantidad y precio unitario)
+															if (areaPrice.color_extra_total > 0) {
+																var colorExtraQty = areaPrice.color_extra_qty || 0;
+																var colorExtraUnitPrice = parseFloat(areaPrice.color_extra_price).toFixed(3).replace('.', ',');
+																var colorExtraTotal = parseFloat(areaPrice.color_extra_total).toFixed(2).replace('.', ',');
+																var colorExtraTotalCalc = colorExtraQty * totalQuantity;
+																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
+																areasDetailHtml += '<span>Colores adicionales (' + colorExtraTotalCalc + ' uds × ' + colorExtraUnitPrice + ' €)</span>';
+																areasDetailHtml += '<span>' + colorExtraTotal + ' €</span>';
+																areasDetailHtml += '</div>';
+															}
+															
+															// Cliché o Repetición cliché (solo uno de los dos)
+															if (areaPrice.cliche_repetition_price > 0) {
+																// Si hay repetición de cliché, se muestra SOLO este
+																var clicheRepQty = areaPrice.cliche_colors_qty || 1;
+																var clicheRepUnitPrice = parseFloat(areaPrice.cliche_unit_price).toFixed(2).replace('.', ',');
+																var clicheRepTotal = parseFloat(areaPrice.cliche_repetition_price).toFixed(2).replace('.', ',');
+																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
+																areasDetailHtml += '<span>Repetición cliché (' + clicheRepQty + ' colores × ' + clicheRepUnitPrice + ' €)</span>';
+																areasDetailHtml += '<span>' + clicheRepTotal + ' €</span>';
+																areasDetailHtml += '</div>';
+															} else if (areaPrice.cliche_price > 0) {
+																// Si NO hay repetición, se muestra el cliché normal
+																var clicheQty = areaPrice.cliche_colors_qty || 1;
+																var clicheUnitPrice = parseFloat(areaPrice.cliche_unit_price).toFixed(2).replace('.', ',');
+																var clicheTotal = parseFloat(areaPrice.cliche_price).toFixed(2).replace('.', ',');
+																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
+																areasDetailHtml += '<span>Cliché fotolito (' + clicheQty + ' colores × ' + clicheUnitPrice + ' €)</span>';
+																areasDetailHtml += '<span>' + clicheTotal + ' €</span>';
+																areasDetailHtml += '</div>';
+															}
+															
+															// Total área
+															var areaTotal = parseFloat(areaPrice.area_total).toFixed(2).replace('.', ',');
+															areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 5px 0 0 0; margin-top: 5px; border-top: 1px solid #ddd; font-weight: 600;">';
+															areasDetailHtml += '<span>Subtotal área:</span>';
+															areasDetailHtml += '<span>' + areaTotal + ' €</span>';
+															areasDetailHtml += '</div>';
+															
+															areasDetailHtml += '</div>';
+														});
+													}
+													$('.wpdm-price-areas-detail').html(areasDetailHtml);
+													
+													console.log('🎨 UI actualizada con precios y desglose detallado');
+													
+													// Habilitar botón de añadir al carrito si hay áreas seleccionadas
+													var hasEnabledAreas = customizationData.areas.length > 0;
+													$('.wpdm-customization-add-to-cart').prop('disabled', !hasEnabledAreas);
+													
+													console.log('Botón añadir al carrito:', hasEnabledAreas ? 'HABILITADO' : 'DESHABILITADO');
+												} else {
+													console.error('❌ Error en respuesta:', response.data ? response.data.message : 'Sin mensaje');
+												}
+												console.groupEnd();
+											},
+											error: function(xhr, status, error) {
+												console.error('❌ Error AJAX:', {
+													status: status,
+													error: error,
+													response: xhr.responseText
+												});
+												console.groupEnd();
+											}
+										});
+									}
+									
+									// Calcular precios inicialmente
+									setTimeout(function() {
+										calculatePrices();
+									}, 500);
 								} else {
 									$modal.find('.wpdm-customization-loading').hide();
 									$modal.find('.wpdm-customization-content')
@@ -818,7 +998,7 @@ class WPDM_Customization_Frontend {
 		#wpdm-customization-modal .wpdm-customization-modal-content {
 			position: relative !important;
 			background: #fff !important;
-			max-width: 900px !important;
+			max-width: 1100px !important;
 			max-height: 90vh !important;
 			margin: 5vh auto !important;
 			border-radius: 8px !important;
@@ -827,10 +1007,71 @@ class WPDM_Customization_Frontend {
 			display: flex !important;
 			flex-direction: column !important;
 		}
+		#wpdm-customization-modal .wpdm-customization-modal-header {
+			padding: 20px 30px !important;
+			border-bottom: 1px solid #e0e0e0 !important;
+			display: flex !important;
+			justify-content: space-between !important;
+			align-items: center !important;
+			background: linear-gradient(135deg, #0464AC 0%, #061B46 100%) !important;
+			color: #fff !important;
+			position: relative !important;
+		}
+		#wpdm-customization-modal .wpdm-customization-modal-header h2 {
+			margin: 0 !important;
+			font-size: 1.5em !important;
+			font-weight: 600 !important;
+			color: #fff !important;
+		}
+		#wpdm-customization-modal .wpdm-customization-modal-close {
+			background: transparent !important;
+			border: none !important;
+			color: #fff !important;
+			font-size: 32px !important;
+			line-height: 1 !important;
+			cursor: pointer !important;
+			padding: 0 !important;
+			width: 40px !important;
+			height: 40px !important;
+			display: flex !important;
+			align-items: center !important;
+			justify-content: center !important;
+			transition: opacity 0.2s !important;
+			position: absolute !important;
+			right: 20px !important;
+			top: 50% !important;
+			transform: translateY(-50%) !important;
+		}
+		#wpdm-customization-modal .wpdm-customization-modal-close:hover {
+			opacity: 0.7 !important;
+		}
 		#wpdm-customization-modal .wpdm-customization-modal-body {
 			overflow-y: auto !important;
 			max-height: calc(90vh - 200px) !important;
 			padding: 20px !important;
+		}
+		.wpdm-area-content-grid {
+			display: grid !important;
+			grid-template-columns: 250px 1fr !important;
+			gap: 30px !important;
+			align-items: start !important;
+		}
+		.wpdm-area-image-large {
+			width: 100% !important;
+			border-radius: 8px !important;
+			border: 2px solid #e0e0e0 !important;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+		}
+		@media (max-width: 768px) {
+			.wpdm-area-content-grid {
+				grid-template-columns: 1fr !important;
+				gap: 20px !important;
+			}
+			.wpdm-area-image-large {
+				max-width: 200px !important;
+				margin: 0 auto !important;
+				display: block !important;
+			}
 		}
 		body.wpdm-modal-open {
 			overflow: hidden !important;
@@ -856,9 +1097,22 @@ class WPDM_Customization_Frontend {
 				</div>
 				<div class="wpdm-customization-modal-footer" style="display: none;">
 					<div class="wpdm-customization-summary">
-						<div class="wpdm-customization-total">
-							<strong><?php esc_html_e( 'TOTAL PERSONALIZACIÓN:', 'woo-prices-dynamics-makito' ); ?></strong>
-							<span class="wpdm-customization-total-price">0,00 €</span>
+						<div class="wpdm-price-breakdown">
+							<div class="wpdm-price-line">
+								<span><?php esc_html_e( 'Precio base producto:', 'woo-prices-dynamics-makito' ); ?></span>
+								<span class="wpdm-base-total-price">0,00 €</span>
+							</div>
+							<div class="wpdm-price-line wpdm-price-customization-header" style="background: #f0f0f0; font-weight: 600; margin-top: 10px;">
+								<span><?php esc_html_e( 'PERSONALIZACIÓN:', 'woo-prices-dynamics-makito' ); ?></span>
+								<span class="wpdm-customization-total-price">0,00 €</span>
+							</div>
+							<div class="wpdm-price-areas-detail" style="padding-left: 20px; font-size: 0.9em;">
+								<!-- Aquí se inyectará el desglose por área -->
+							</div>
+							<div class="wpdm-price-line wpdm-price-total">
+								<strong><?php esc_html_e( 'TOTAL:', 'woo-prices-dynamics-makito' ); ?></strong>
+								<strong class="wpdm-grand-total-price">0,00 €</strong>
+							</div>
 						</div>
 					</div>
 					<div class="wpdm-customization-actions">

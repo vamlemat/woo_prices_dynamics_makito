@@ -267,26 +267,56 @@
 
 .wpdm-customization-summary {
 	margin-bottom: 20px;
-	padding: 15px;
-	background: #fff;
-	border-radius: 4px;
-	border: 1px solid #e0e0e0;
 }
 
-.wpdm-customization-total {
+.wpdm-price-breakdown {
+	background: #fff;
+	border-radius: 8px;
+	border: 1px solid #e0e0e0;
+	overflow: hidden;
+}
+
+.wpdm-price-line {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	font-size: 1.2em;
+	padding: 12px 20px;
+	border-bottom: 1px solid #f0f0f0;
+	font-size: 0.95em;
 }
 
-.wpdm-customization-total strong {
-	color: #54595F;
+.wpdm-price-line:last-child {
+	border-bottom: none;
+}
+
+.wpdm-price-line.wpdm-price-total {
+	background: linear-gradient(135deg, #0464AC 0%, #061B46 100%);
+	color: #fff;
+	font-size: 1.1em;
+	padding: 15px 20px;
+}
+
+.wpdm-price-line.wpdm-price-total strong {
+	color: #fff;
+}
+
+.wpdm-customization-total-price,
+.wpdm-base-total-price,
+.wpdm-grand-total-price {
+	font-weight: 700;
+	font-size: 1.1em;
 }
 
 .wpdm-customization-total-price {
 	color: #0464AC;
-	font-weight: 700;
+}
+
+.wpdm-base-total-price {
+	color: #54595F;
+}
+
+.wpdm-grand-total-price {
+	color: #fff;
 	font-size: 1.3em;
 }
 
@@ -367,5 +397,6 @@ body.wpdm-modal-open {
 		width: 100%;
 	}
 }
+
 
 

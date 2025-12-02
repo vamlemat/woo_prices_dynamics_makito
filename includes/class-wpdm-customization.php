@@ -324,13 +324,23 @@ class WPDM_Customization {
 		$color_extra_price = $price_col;
 		$color_extra_total = $colors_extra > 0 ? ( $price_col * $colors_extra * $total_quantity ) : 0;
 
-		// Coste de cliché (una vez por técnica, no por área)
-		$cliche_price = $technique_data['cliche'];
-
-		// Coste de repetición cliché (si está marcado)
+		// Coste de cliché: se multiplica por el TOTAL de colores seleccionados
+		// Si hay repetición de cliché marcada, se usa ese precio en lugar del cliché normal
+		$cliche_unit_price = 0;
+		$cliche_price = 0;
 		$cliche_repetition_price = 0;
+		$cliche_colors_qty = $colors_selected; // Total de colores (incluidos los incluidos)
+		
 		if ( ! empty( $area_data['cliche_repetition'] ) ) {
-			$cliche_repetition_price = $technique_data['cliche_repetition'];
+			// Si está marcada repetición, SOLO se usa el precio de repetición
+			$cliche_unit_price = $technique_data['cliche_repetition'];
+			$cliche_repetition_price = $cliche_unit_price * $cliche_colors_qty;
+			$cliche_price = 0; // No se suma el cliché normal
+		} else {
+			// Si NO hay repetición, se usa el precio de cliché normal
+			$cliche_unit_price = $technique_data['cliche'];
+			$cliche_price = $cliche_unit_price * $cliche_colors_qty;
+			$cliche_repetition_price = 0;
 		}
 
 		// Total del área
@@ -346,10 +356,15 @@ class WPDM_Customization {
 		}
 
 		return array(
+			'technique_name' => $technique_data['name'],
 			'technique_unit_price' => $technique_unit_price,
 			'technique_total_price' => $technique_total_price,
+			'quantity' => $total_quantity,
 			'color_extra_price' => $color_extra_price,
+			'color_extra_qty' => $colors_extra,
 			'color_extra_total' => $color_extra_total,
+			'cliche_unit_price' => $cliche_unit_price,
+			'cliche_colors_qty' => $cliche_colors_qty,
 			'cliche_price' => $cliche_price,
 			'cliche_repetition_price' => $cliche_repetition_price,
 			'area_total' => $area_total,
@@ -379,8 +394,13 @@ class WPDM_Customization {
 				continue;
 			}
 
+			// Usar la cantidad específica del área si está definida, sino usar la cantidad total
+			$area_quantity = isset( $area_data['quantity'] ) && $area_data['quantity'] > 0 
+				? absint( $area_data['quantity'] ) 
+				: $total_quantity;
+
 			// Cada área de trabajo lleva su propio cliché (fotolito)
-			$area_price = self::calculate_area_price( $area_data, $total_quantity );
+			$area_price = self::calculate_area_price( $area_data, $area_quantity );
 
 			$areas_prices[ $area_index ] = $area_price;
 			$total += $area_price['area_total'];
@@ -533,11 +553,38 @@ class WPDM_Customization {
 			wp_send_json_error( array( 'message' => __( 'Datos inválidos.', 'woo-prices-dynamics-makito' ) ) );
 		}
 
-		$prices = self::calculate_total_customization_price( $customization_data, $total_quantity );
+		// Calcular precios de personalización
+		$price_calculation = self::calculate_total_customization_price( $customization_data, $total_quantity );
+
+		// Obtener precio base del producto según la cantidad
+		$base_price = 0;
+		$product = wc_get_product( $product_id );
+		if ( $product ) {
+			// Si tiene price_tiers, usar ese precio
+			if ( class_exists( 'WPDM_Price_Tiers' ) ) {
+				$tier_price = WPDM_Price_Tiers::get_price_from_tiers( $product_id, $total_quantity );
+				if ( $tier_price > 0 ) {
+					$base_price = $tier_price;
+				}
+			}
+			
+			// Si no hay tier price, usar precio regular
+			if ( $base_price <= 0 ) {
+				$base_price = floatval( $product->get_price() );
+			}
+		}
+
+		$base_total = $base_price * $total_quantity;
+		$customization_total = $price_calculation['total'];
+		$grand_total = $base_total + $customization_total;
 
 		wp_send_json_success( array(
-			'total' => $prices['total'],
-			'areas' => $prices['areas'],
+			'base_price' => $base_price,
+			'base_total' => $base_total,
+			'customization_total' => $customization_total,
+			'grand_total' => $grand_total,
+			'areas' => $price_calculation['areas'],
+			'currency_symbol' => get_woocommerce_currency_symbol(),
 		) );
 	}
 
