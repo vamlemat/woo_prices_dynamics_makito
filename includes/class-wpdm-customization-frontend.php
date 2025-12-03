@@ -886,7 +886,6 @@ class WPDM_Customization_Frontend {
 																var minAmount = parseFloat(areaPrice.minimum_amount).toFixed(2).replace('.', ',');
 																areasDetailHtml += '<div style="padding: 8px; margin: 8px 0; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85em; color: #856404;">';
 																areasDetailHtml += '⚠ <strong>Importe mínimo de técnica:</strong> ' + minAmount + ' €';
-																areasDetailHtml += '<div style="margin-top: 4px; font-size: 0.9em; opacity: 0.9;">El cliché se suma aparte</div>';
 																areasDetailHtml += '</div>';
 															}
 															

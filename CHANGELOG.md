@@ -5,6 +5,27 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.6.5] - 2025-12-03
+
+### 🎨 Mejora UI - Simplificación de badge de importe mínimo
+
+**Cambio:**
+- Eliminado el comentario "El cliché se suma aparte" del badge amarillo de importe mínimo
+- El badge ahora solo muestra: "⚠ Importe mínimo de técnica: X,XX €"
+
+**Resultado:**
+```
+┌───────────────────────────────────┐
+│ ⚠ Importe mínimo de técnica: 45,00 € │
+└───────────────────────────────────┘
+```
+
+Más limpio y directo. El desglose visual ya deja claro que el cliché se suma después.
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php` (línea 907)
+- `woo-prices-dynamics-makito.php` (v2.6.5)
+
 ## [2.6.4] - 2025-12-03
 
 ### 🐛 Corrección CRÍTICA - Importe mínimo solo para técnica
