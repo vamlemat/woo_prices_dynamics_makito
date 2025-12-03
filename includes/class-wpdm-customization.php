@@ -325,6 +325,17 @@ class WPDM_Customization {
 		$color_extra_price = $price_col;
 		$color_extra_total = $colors_extra > 0 ? ( $price_col * $colors_extra * $total_quantity ) : 0;
 
+		// IMPORTANTE: El "min" es un IMPORTE MÍNIMO que se aplica SOLO a la técnica + colores extra
+		// El cliché se suma DESPUÉS de aplicar el mínimo
+		$min = $technique_data['min'];
+		$minimum_applied = false;
+		$technique_and_colors_total = $technique_total_price + $color_extra_total;
+		
+		if ( $min > 0 && $technique_and_colors_total < $min ) {
+			$technique_and_colors_total = $min;
+			$minimum_applied = true;
+		}
+
 		// Coste de cliché: se multiplica por el TOTAL de colores seleccionados
 		// Si hay repetición de cliché marcada, se usa ese precio en lugar del cliché normal
 		$cliche_unit_price = 0;
@@ -344,18 +355,8 @@ class WPDM_Customization {
 			$cliche_repetition_price = 0;
 		}
 
-		// Total del área ANTES de aplicar mínimo
-		$area_total = $technique_total_price + $color_extra_total + $cliche_price + $cliche_repetition_price;
-
-		// IMPORTANTE: El "min" es un IMPORTE MÍNIMO, no cantidad de unidades
-		// Si el total calculado es menor que el mínimo, se cobra el mínimo
-		$min = $technique_data['min'];
-		$minimum_applied = false;
-		
-		if ( $min > 0 && $area_total < $min ) {
-			$area_total = $min;
-			$minimum_applied = true;
-		}
+		// Total del área = (Técnica + Colores [con mínimo aplicado]) + Cliché
+		$area_total = $technique_and_colors_total + $cliche_price + $cliche_repetition_price;
 
 		return array(
 			'technique_name' => $technique_data['name'],

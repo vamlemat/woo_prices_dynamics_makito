@@ -5,6 +5,79 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.6.4] - 2025-12-03
+
+### 🐛 Corrección CRÍTICA - Importe mínimo solo para técnica
+
+**Problema identificado:**
+- En v2.6.3, el importe mínimo se aplicaba al total (técnica + colores + cliché)
+- **Incorrecto:** Si (técnica + colores + cliché) < mínimo, entonces total = mínimo
+
+**Lógica correcta:**
+- El importe mínimo se aplica SOLO a (técnica + colores extra)
+- El cliché se suma DESPUÉS de aplicar el mínimo
+- **Correcto:** Si (técnica + colores) < mínimo, entonces (técnica + colores) = mínimo, luego + cliché
+
+**Ejemplo corregido:**
+
+```
+Cálculo v2.6.3 (❌ INCORRECTO):
+1 ud × 0,625€ = 0,625€
+Cliché 30€
+Total calculado: 30,625€
+Mínimo: 35€
+Total final: 35€ ❌ (no suma correctamente)
+
+Cálculo v2.6.4 (✅ CORRECTO):
+1 ud × 0,625€ = 0,625€
+⚠ Importe mínimo de técnica: 35€ ✅
++ Cliché 30€
+Total final: 65€ ✅
+```
+
+**Cambios implementados:**
+
+1. **Backend (`calculate_area_price()`):**
+   ```php
+   // Calcular técnica + colores
+   $technique_and_colors_total = $technique_total_price + $color_extra_total;
+   
+   // Aplicar mínimo SOLO a técnica + colores
+   if ($min > 0 && $technique_and_colors_total < $min) {
+       $technique_and_colors_total = $min;
+       $minimum_applied = true;
+   }
+   
+   // Sumar cliché DESPUÉS
+   $area_total = $technique_and_colors_total + $cliche_price + $cliche_repetition_price;
+   ```
+
+2. **Frontend (desglose visual):**
+   - Técnica
+   - Colores adicionales
+   - ⚠ **Badge amarillo: "Importe mínimo de técnica: X €"** (si se aplica)
+   - Nota aclaratoria: "El cliché se suma aparte"
+   - Cliché fotolito / Repetición cliché
+   - Subtotal área
+
+**Orden del desglose ahora:**
+```
+» Área 1
+DIGITAL 360 (1 uds × 0,625 €)         0,62 €
+┌──────────────────────────────────────────┐
+│ ⚠ Importe mínimo de técnica: 35,00 €    │
+│ El cliché se suma aparte                 │
+└──────────────────────────────────────────┘
+Cliché fotolito (1 colores × 30,00 €)  30,00 €
+────────────────────────────────────────────
+Subtotal área:                         65,00 €
+```
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`: Refactorización de cálculo (líneas 265-375)
+- `includes/class-wpdm-customization-frontend.php`: Reordenamiento del desglose (líneas 872-905)
+- `woo-prices-dynamics-makito.php`: Versión actualizada a 2.6.4
+
 ## [2.6.3] - 2025-12-03
 
 ### 🐛 Corrección CRÍTICA - Importe Mínimo por Técnica
