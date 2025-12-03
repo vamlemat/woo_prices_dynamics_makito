@@ -5,6 +5,50 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.6.2] - 2025-12-03
+
+### 🐛 Correcciones Críticas
+
+#### **Fix: Cálculo de cantidad mínima por técnica**
+
+**Problema reportado:**
+- El precio unitario de la técnica cambiaba incorrectamente cuando se activaba la repetición de cliché
+- Ejemplo: Con cliché normal (30€) el precio era 0,625€, pero con repetición de cliché se convertía en 2,50€
+- La cantidad mínima de la técnica no se estaba aplicando correctamente
+
+**Causa raíz:**
+- La lógica de cantidad mínima se aplicaba AL FINAL del cálculo, ajustando retroactivamente el precio unitario
+- Esto causaba inconsistencias al dividir el ajuste entre la cantidad real en lugar de usar el mínimo desde el principio
+
+**Solución implementada:**
+1. **Aplicación temprana del mínimo:** El mínimo ahora se aplica ANTES de calcular precios
+2. **Cantidad efectiva:** Si `total_quantity < min`, se usa `min` como `quantity_for_technique`
+3. **Precio unitario consistente:** El precio unitario ya no se ajusta retroactivamente
+4. **Indicador visual:** Se muestra "⚠ Mínimo" en el desglose cuando se aplica la cantidad mínima
+
+**Cambios técnicos:**
+- `calculate_area_price()` ahora determina `quantity_for_technique = max(total_quantity, min)`
+- El precio de la técnica se calcula con `quantity_for_technique` (respetando el mínimo)
+- Los colores extra se cobran por la cantidad REAL solicitada, no por el mínimo
+- Nuevos campos en respuesta: `quantity_used` (cantidad usada para el cálculo) y `minimum_applied` (boolean)
+- El frontend muestra un indicador visual "⚠ Mínimo" cuando `minimum_applied === true`
+
+**Resultado:**
+- El precio unitario de la técnica ahora es **consistente** independientemente de si hay cliché o repetición
+- La cantidad mínima se aplica correctamente, garantizando que se cobra al menos el mínimo configurado
+- Los clientes ven claramente cuándo se está aplicando una cantidad mínima en el desglose de precios
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`: Refactorización de `calculate_area_price()` (líneas 265-375)
+- `includes/class-wpdm-customization-frontend.php`: Actualización del desglose de precios (líneas 860-877)
+- `woo-prices-dynamics-makito.php`: Versión actualizada a 2.6.2
+
+**Testing recomendado:**
+- [ ] Verificar precio con cantidad < mínimo (debe aplicarse el mínimo)
+- [ ] Verificar precio con cantidad > mínimo (debe usar la cantidad real)
+- [ ] Comparar precio unitario con cliché normal vs repetición (debe ser igual)
+- [ ] Verificar indicador "⚠ Mínimo" en el desglose
+
 ## [2.3.4] - 2025-01-02
 
 ### 🎉 Versión Mayor - Sistema de Personalización de Productos (Fase 1 Completa)

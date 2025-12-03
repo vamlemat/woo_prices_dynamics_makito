@@ -271,6 +271,8 @@ class WPDM_Customization {
 			'cliche_price' => 0,
 			'cliche_repetition_price' => 0,
 			'area_total' => 0,
+			'quantity_used' => 0,
+			'minimum_applied' => false,
 		);
 
 		if ( empty( $area_data['technique_ref'] ) || $total_quantity <= 0 ) {
@@ -288,7 +290,18 @@ class WPDM_Customization {
 			return $result;
 		}
 
-		// Buscar tramo de precio según cantidad total
+		// IMPORTANTE: Aplicar mínimo ANTES de calcular precios
+		// Si la cantidad es menor que el mínimo, usar el mínimo para el cálculo de la técnica
+		$min = $technique_data['min'];
+		$quantity_for_technique = $total_quantity;
+		$minimum_applied = false;
+		
+		if ( $min > 0 && $total_quantity < $min ) {
+			$quantity_for_technique = $min;
+			$minimum_applied = true;
+		}
+
+		// Buscar tramo de precio según cantidad efectiva (con mínimo aplicado)
 		$selected_tier = null;
 		$precio_escalas = $technique_data['precio_escalas'];
 
@@ -296,7 +309,7 @@ class WPDM_Customization {
 			$section_desde = isset( $tier['section_desde'] ) ? absint( $tier['section_desde'] ) : 0;
 			$section_hasta = isset( $tier['section_hasta'] ) ? absint( $tier['section_hasta'] ) : 0;
 
-			if ( $total_quantity >= $section_desde && ( 0 === $section_hasta || $total_quantity <= $section_hasta ) ) {
+			if ( $quantity_for_technique >= $section_desde && ( 0 === $section_hasta || $quantity_for_technique <= $section_hasta ) ) {
 				$selected_tier = $tier;
 				break;
 			}
@@ -311,9 +324,11 @@ class WPDM_Customization {
 			return $result;
 		}
 
-		// Precio base por unidad
+		// Precio base por unidad según el tramo
 		$technique_unit_price = isset( $selected_tier['price'] ) ? floatval( $selected_tier['price'] ) : 0;
-		$technique_total_price = $technique_unit_price * $total_quantity;
+		
+		// IMPORTANTE: El precio total se calcula con la cantidad efectiva (puede ser el mínimo)
+		$technique_total_price = $technique_unit_price * $quantity_for_technique;
 
 		// Calcular precio por colores adicionales
 		$col_inc = $technique_data['col_inc'];
@@ -322,6 +337,8 @@ class WPDM_Customization {
 
 		$price_col = isset( $selected_tier['price_col'] ) ? floatval( $selected_tier['price_col'] ) : 0;
 		$color_extra_price = $price_col;
+		
+		// Los colores extra se cobran por la cantidad REAL solicitada, no por el mínimo
 		$color_extra_total = $colors_extra > 0 ? ( $price_col * $colors_extra * $total_quantity ) : 0;
 
 		// Coste de cliché: se multiplica por el TOTAL de colores seleccionados
@@ -346,20 +363,13 @@ class WPDM_Customization {
 		// Total del área
 		$area_total = $technique_total_price + $color_extra_total + $cliche_price + $cliche_repetition_price;
 
-		// Verificar mínimo
-		$min = $technique_data['min'];
-		if ( $min > 0 && $area_total < $min ) {
-			$area_total = $min;
-			// Ajustar precio unitario para reflejar el mínimo
-			$technique_total_price = $area_total - $color_extra_total - $cliche_price - $cliche_repetition_price;
-			$technique_unit_price = $technique_total_price / $total_quantity;
-		}
-
 		return array(
 			'technique_name' => $technique_data['name'],
 			'technique_unit_price' => $technique_unit_price,
 			'technique_total_price' => $technique_total_price,
 			'quantity' => $total_quantity,
+			'quantity_used' => $quantity_for_technique,
+			'minimum_applied' => $minimum_applied,
 			'color_extra_price' => $color_extra_price,
 			'color_extra_qty' => $colors_extra,
 			'color_extra_total' => $color_extra_total,

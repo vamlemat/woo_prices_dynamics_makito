@@ -860,11 +860,18 @@ class WPDM_Customization_Frontend {
 															// Técnica (nombre + precio unitario × cantidad)
 															if (areaPrice.technique_total_price > 0) {
 																var techName = areaPrice.technique_name || 'Técnica';
-																var techQuantity = areaPrice.quantity || totalQuantity; // Usar cantidad específica del área si existe
+																var techQuantity = areaPrice.quantity_used || areaPrice.quantity || totalQuantity;
 																var techUnitPrice = parseFloat(areaPrice.technique_unit_price).toFixed(3).replace('.', ',');
 																var techTotal = parseFloat(areaPrice.technique_total_price).toFixed(2).replace('.', ',');
 																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
-																areasDetailHtml += '<span>' + techName + ' (' + techQuantity + ' uds × ' + techUnitPrice + ' €)</span>';
+																areasDetailHtml += '<span>' + techName + ' (' + techQuantity + ' uds × ' + techUnitPrice + ' €)';
+																
+																// Mostrar indicador si se aplicó el mínimo
+																if (areaPrice.minimum_applied) {
+																	areasDetailHtml += ' <span style="color: #d00; font-size: 0.85em;" title="Se ha aplicado la cantidad mínima de la técnica">⚠ Mínimo</span>';
+																}
+																
+																areasDetailHtml += '</span>';
 																areasDetailHtml += '<span>' + techTotal + ' €</span>';
 																areasDetailHtml += '</div>';
 															}
