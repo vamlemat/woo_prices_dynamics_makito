@@ -613,6 +613,13 @@ class WPDM_Customization_Frontend {
 									$modal.find('.wpdm-customization-content').html(html).show();
 									$modal.find('.wpdm-customization-modal-footer').show();
 									
+									// FORZAR visibilidad correcta de tabs
+									console.log('[WPDM] Forzando visibilidad de tabs...');
+									$('#wpdm-tab-areas').css('display', 'block').show();
+									$('#wpdm-tab-desglose').css('display', 'none').hide();
+									$('.wpdm-modal-tab[data-tab="areas"]').addClass('active');
+									$('.wpdm-modal-tab[data-tab="desglose"]').removeClass('active');
+									
 									// Guardar las áreas originales para re-renderizar
 									$modal.data('original-areas', response.data.areas);
 									
@@ -847,7 +854,8 @@ class WPDM_Customization_Frontend {
 													// Actualizar UI con símbolo € directo
 													$('.wpdm-base-total-price').text(baseTotal + ' €');
 													$('.wpdm-customization-total-price').text(customizationTotal + ' €');
-													$('.wpdm-grand-total-price').text(grandTotal + ' €');
+													$('.wpdm-grand-total-price').text(grandTotal + ' €'); // Tab Áreas (simple)
+													$('.wpdm-grand-total-price-detail').text(grandTotal + ' €'); // Tab Desglose
 													
 													// Generar desglose detallado por área
 													var areasDetailHtml = '';
@@ -978,6 +986,63 @@ class WPDM_Customization_Frontend {
 					$modal.hide();
 					$('body').removeClass('wpdm-modal-open');
 				});
+
+				// Sistema de Tabs para Footer
+				$(document).on('click', '.wpdm-modal-tab', function() {
+					var tabName = $(this).data('tab');
+					console.log('[WPDM] Cambiando a tab:', tabName);
+					
+					// Cambiar estilos de los botones de tabs (INACTIVOS)
+					$('.wpdm-modal-tab').each(function() {
+						$(this).removeClass('active');
+						$(this).css({
+							'background': '#f8f9fa',
+							'color': '#6c757d',
+							'border': '1px solid transparent',
+							'border-bottom': '2px solid transparent',
+							'box-shadow': 'none',
+							'transform': 'scale(1)'
+						});
+					});
+					
+					// Aplicar estilos al tab ACTIVO
+					$(this).addClass('active').css({
+						'background': '#fff',
+						'color': '#0464AC',
+						'border': '1px solid #dee2e6',
+						'border-bottom': '2px solid #fff',
+						'box-shadow': '0 -3px 8px rgba(0,0,0,0.08)',
+						'transform': 'scale(1)'
+					});
+					
+					// FORZAR ocultar TODOS los tabs primero
+					$('.wpdm-modal-tab-content').each(function() {
+						$(this).removeClass('active').css('display', 'none').hide();
+					});
+					
+					// FORZAR mostrar SOLO el tab activo
+					var $targetTab = $('#wpdm-tab-' + tabName);
+					$targetTab.addClass('active').css('display', 'block').show();
+					
+					console.log('[WPDM] Tab cambiado. Mostrando:', tabName);
+				});
+				
+				// Efecto hover para tabs
+				$(document).on('mouseenter', '.wpdm-modal-tab:not(.active)', function() {
+					$(this).css({
+						'background': '#e9ecef',
+						'color': '#495057',
+						'transform': 'translateY(-2px)'
+					});
+				});
+				
+				$(document).on('mouseleave', '.wpdm-modal-tab:not(.active)', function() {
+					$(this).css({
+						'background': '#f8f9fa',
+						'color': '#6c757d',
+						'transform': 'translateY(0)'
+					});
+				});
 			} else {
 				console.error('[WPDM] Botón NO encontrado');
 			}
@@ -1104,25 +1169,51 @@ class WPDM_Customization_Frontend {
 					</div>
 				</div>
 				<div class="wpdm-customization-modal-footer" style="display: none;">
-					<div class="wpdm-customization-summary">
-						<div class="wpdm-price-breakdown">
-							<div class="wpdm-price-line">
-								<span><?php esc_html_e( 'Precio base producto:', 'woo-prices-dynamics-makito' ); ?></span>
-								<span class="wpdm-base-total-price">0,00 €</span>
-							</div>
-							<div class="wpdm-price-line wpdm-price-customization-header" style="background: #f0f0f0; font-weight: 600; margin-top: 10px;">
-								<span><?php esc_html_e( 'PERSONALIZACIÓN:', 'woo-prices-dynamics-makito' ); ?></span>
-								<span class="wpdm-customization-total-price">0,00 €</span>
-							</div>
-							<div class="wpdm-price-areas-detail" style="padding-left: 20px; font-size: 0.9em;">
-								<!-- Aquí se inyectará el desglose por área -->
-							</div>
-							<div class="wpdm-price-line wpdm-price-total">
-								<strong><?php esc_html_e( 'TOTAL:', 'woo-prices-dynamics-makito' ); ?></strong>
-								<strong class="wpdm-grand-total-price">0,00 €</strong>
+					<!-- Tabs para separar Áreas y Desglose -->
+					<div class="wpdm-modal-tabs" style="display: flex; background: #e9ecef; margin: -20px 0 20px 0; padding: 8px 20px 0 20px; gap: 8px; border-bottom: 2px solid #dee2e6; border-radius: 0;">
+						<button class="wpdm-modal-tab active" data-tab="areas" style="padding: 14px 30px; cursor: pointer; border: 1px solid #dee2e6; border-bottom: 2px solid #fff; background: #fff; font-size: 1em; font-weight: 700; color: #0464AC; border-radius: 8px 8px 0 0; margin-bottom: -2px; box-shadow: 0 -3px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; letter-spacing: 0.3px;">
+							<?php esc_html_e( 'ÁREAS', 'woo-prices-dynamics-makito' ); ?>
+						</button>
+						<button class="wpdm-modal-tab" data-tab="desglose" style="padding: 14px 30px; cursor: pointer; border: 1px solid transparent; border-bottom: 2px solid transparent; background: #f8f9fa; font-size: 1em; font-weight: 700; color: #6c757d; border-radius: 8px 8px 0 0; margin-bottom: -2px; transition: all 0.3s ease; letter-spacing: 0.3px;">
+							<?php esc_html_e( 'DESGLOSE DE PRECIOS', 'woo-prices-dynamics-makito' ); ?>
+						</button>
+					</div>
+
+					<!-- Tab Content: Áreas (Total Simple) -->
+					<div class="wpdm-modal-tab-content active" id="wpdm-tab-areas" style="display: block; max-height: 40vh; overflow-y: auto; padding: 20px 0;">
+						<div class="wpdm-price-simple-summary" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; border: 2px solid #0464AC; padding: 30px; margin: 10px 0 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(4, 100, 172, 0.1);">
+							<div class="wpdm-simple-label" style="font-size: 1.1em; color: #666; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;"><?php esc_html_e( 'Total Personalización:', 'woo-prices-dynamics-makito' ); ?></div>
+							<div class="wpdm-simple-total wpdm-grand-total-price" style="font-size: 2.2em; font-weight: 700; color: #0464AC; margin-top: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.05);">0,00 €</div>
+							<div style="font-size: 0.9em; color: #999; margin-top: 10px;">
+								<?php esc_html_e( 'Ver pestaña "Desglose de Precios" para más detalles', 'woo-prices-dynamics-makito' ); ?>
 							</div>
 						</div>
 					</div>
+
+					<!-- Tab Content: Desglose -->
+					<div class="wpdm-modal-tab-content" id="wpdm-tab-desglose" style="display: none; max-height: 40vh; overflow-y: auto; padding: 20px 0;">
+						<div class="wpdm-customization-summary">
+							<div class="wpdm-price-breakdown">
+								<div class="wpdm-price-line">
+									<span><?php esc_html_e( 'Precio base producto:', 'woo-prices-dynamics-makito' ); ?></span>
+									<span class="wpdm-base-total-price">0,00 €</span>
+								</div>
+								<div class="wpdm-price-line wpdm-price-customization-header" style="background: #f0f0f0; font-weight: 600; margin-top: 10px;">
+									<span><?php esc_html_e( 'PERSONALIZACIÓN:', 'woo-prices-dynamics-makito' ); ?></span>
+									<span class="wpdm-customization-total-price">0,00 €</span>
+								</div>
+								<div class="wpdm-price-areas-detail" style="padding-left: 20px; font-size: 0.9em;">
+									<!-- Aquí se inyectará el desglose por área -->
+								</div>
+								<div class="wpdm-price-line wpdm-price-total">
+									<strong><?php esc_html_e( 'TOTAL:', 'woo-prices-dynamics-makito' ); ?></strong>
+									<strong class="wpdm-grand-total-price-detail">0,00 €</strong>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Botones de acción (siempre visibles) -->
 					<div class="wpdm-customization-actions">
 						<button type="button" class="button wpdm-customization-cancel">
 							<?php esc_html_e( 'Cancelar', 'woo-prices-dynamics-makito' ); ?>

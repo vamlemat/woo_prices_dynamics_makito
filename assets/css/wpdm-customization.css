@@ -70,12 +70,12 @@
 }
 
 .wpdm-customization-modal-body {
-	flex: 0 1 auto;
-	overflow-y: auto;
-	padding: 30px;
-	/* Scroll independiente para las áreas */
-	max-height: 40vh;
-	min-height: 250px;
+	flex: 1 1 auto !important;
+	overflow-y: auto !important;
+	padding: 30px !important;
+	/* Scroll independiente para las áreas - MÁS ESPACIO */
+	max-height: 50vh !important;
+	min-height: 350px !important;
 }
 
 .wpdm-customization-modal-body::-webkit-scrollbar {
@@ -289,10 +289,11 @@
 	padding: 20px 30px;
 	border-top: 1px solid #e0e0e0;
 	background: #f9f9f9;
-	/* Scroll independiente para el desglose de precios */
-	max-height: 40vh;
-	overflow-y: auto;
-	flex: 0 1 auto;
+	/* Footer con tabs - altura flexible */
+	max-height: 50vh !important;
+	overflow-y: auto !important;
+	flex: 0 0 auto !important;
+	min-height: auto;
 }
 
 .wpdm-customization-modal-footer::-webkit-scrollbar {
@@ -313,34 +314,111 @@
 	background: #061B46;
 }
 
+/* Resumen simple en tab de áreas */
+.wpdm-price-simple-summary {
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+	border-radius: 12px;
+	border: 2px solid #0464AC;
+	padding: 30px;
+	margin: 10px 0 20px 0;
+	text-align: center;
+	box-shadow: 0 4px 12px rgba(4, 100, 172, 0.1);
+}
+
+.wpdm-price-simple-summary .wpdm-simple-total {
+	font-size: 2.2em;
+	font-weight: 700;
+	color: #0464AC;
+	margin-top: 15px;
+	text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.wpdm-price-simple-summary .wpdm-simple-label {
+	font-size: 1.1em;
+	color: #666;
+	font-weight: 600;
+	margin-bottom: 5px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
 .wpdm-customization-summary {
 	margin-bottom: 20px;
 }
 
+/* Sistema de Tabs para Modal - Estilo mejorado */
+.wpdm-modal-tabs {
+	display: flex;
+	background: #f5f5f5;
+	margin: -30px -30px 20px -30px;
+	padding: 0 30px;
+	gap: 5px;
+	border-bottom: 1px solid #ddd;
+}
+
+.wpdm-modal-tab {
+	padding: 12px 25px;
+	cursor: pointer;
+	border: 1px solid #ddd;
+	border-bottom: none;
+	background: #e8e8e8;
+	font-size: 0.95em;
+	font-weight: 600;
+	color: #666;
+	transition: all 0.2s;
+	position: relative;
+	border-radius: 8px 8px 0 0;
+	margin-bottom: -1px;
+}
+
+.wpdm-modal-tab:hover {
+	background: #f0f0f0;
+	color: #333;
+}
+
+.wpdm-modal-tab.active {
+	background: #fff;
+	color: #0464AC;
+	border-color: #ddd;
+	z-index: 1;
+	box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+}
+
+.wpdm-modal-tab-content {
+	display: none !important;
+	max-height: 40vh;
+	overflow-y: auto;
+	padding: 20px 0;
+}
+
+.wpdm-modal-tab-content.active {
+	display: block !important;
+}
+
+.wpdm-modal-tab-content::-webkit-scrollbar {
+	width: 8px;
+}
+
+.wpdm-modal-tab-content::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 4px;
+}
+
+.wpdm-modal-tab-content::-webkit-scrollbar-thumb {
+	background: #0464AC;
+	border-radius: 4px;
+}
+
+.wpdm-modal-tab-content::-webkit-scrollbar-thumb:hover {
+	background: #061B46;
+}
+
 /* Contenedor del desglose de áreas con scroll */
 .wpdm-price-areas-detail {
-	max-height: 300px;
-	overflow-y: auto;
+	max-height: none;
+	overflow-y: visible;
 	margin-bottom: 15px;
 	padding-right: 5px;
-}
-
-.wpdm-price-areas-detail::-webkit-scrollbar {
-	width: 6px;
-}
-
-.wpdm-price-areas-detail::-webkit-scrollbar-track {
-	background: #f1f1f1;
-	border-radius: 3px;
-}
-
-.wpdm-price-areas-detail::-webkit-scrollbar-thumb {
-	background: #0464AC;
-	border-radius: 3px;
-}
-
-.wpdm-price-areas-detail::-webkit-scrollbar-thumb:hover {
-	background: #061B46;
 }
 
 .wpdm-price-breakdown {

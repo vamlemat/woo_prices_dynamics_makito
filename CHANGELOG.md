@@ -5,6 +5,264 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.9.3] - 2025-12-03
+
+### 🐛 Fix - Desbordamiento de barra de tabs
+
+**Problema:**
+- La barra de fondo de los tabs sobresalía del popup por ambos lados
+- Margen negativo `-30px` causaba que se extendiera fuera del contenedor
+
+**Solución:**
+- Cambiado `margin: -30px -30px 20px -30px` a `margin: -20px 0 20px 0`
+- Ajustado padding interno para mantener espaciado
+- Tabs ahora contenidas perfectamente dentro del modal
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php`
+- `woo-prices-dynamics-makito.php` (v2.9.3)
+
+## [2.9.2] - 2025-12-03
+
+### 🎨 Mejora UI - Diseño profesional de tabs
+
+**Cambios visuales:**
+
+**Tab activo:**
+- Fondo blanco puro con sombra elevada
+- Texto azul corporativo en MAYÚSCULAS con espaciado
+- Borde inferior conectado al contenido
+- Font-weight 700 para mayor énfasis
+
+**Tab inactivo:**
+- Fondo gris muy claro (#f8f9fa)
+- Texto gris medio (#6c757d)
+- Sin sombra ni bordes visibles
+
+**Efectos interactivos:**
+- Hover: Fondo se oscurece y el tab sube ligeramente (translateY -2px)
+- Transiciones suaves (0.3s ease) en todos los cambios
+- Cambio visual claro entre estados
+
+**Resultado:**
+- Pestañas con aspecto más moderno y profesional
+- Mejor feedback visual para el usuario
+- Separación clara entre tab activo e inactivo
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php`
+- `woo-prices-dynamics-makito.php` (v2.9.2)
+
+## [2.9.0 - 2.9.1] - 2025-12-03
+
+### ✨ Implementación completa - Sistema de Tabs funcional
+
+**Problema inicial:**
+- El sistema de tabs no funcionaba por caché de CSS
+- Los estilos externos no se aplicaban correctamente
+- Necesidad de forzar la aplicación de estilos
+
+**Solución implementada:**
+- Estilos críticos aplicados **inline** directamente en el HTML
+- JavaScript mejorado para forzar la visibilidad correcta
+- Actualización de versión para forzar recarga de assets
+
+**Características finales:**
+
+1. **Tab "Áreas"** (por defecto):
+   - Resumen visual grande con gradiente
+   - Total de personalización destacado (2.2em, azul)
+   - Scroll automático si el contenido crece
+   - Mensaje invitando a ver desglose detallado
+
+2. **Tab "Desglose de Precios"**:
+   - Desglose completo por área
+   - Scroll independiente (max-height: 40vh)
+   - Toda la información detallada de costos
+
+3. **Scrollbars personalizados:**
+   - Ambos tabs con scroll azul corporativo
+   - Ancho 8px para mejor visibilidad
+
+**JavaScript mejorado:**
+- Forzado de display con CSS inline
+- Manejo correcto de clases active
+- Aplicación de estilos visuales al cambiar tabs
+- Console.log para debugging
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php`
+- `assets/css/wpdm-customization.css`
+- `woo-prices-dynamics-makito.php` (v2.9.0, 2.9.1)
+
+## [2.8.0] - 2025-12-03
+
+### ✨ Nueva funcionalidad - Sistema de Tabs en Footer (Concepto inicial)
+
+**Problema identificado:**
+- El desglose de precios ocupaba demasiado espacio
+- Impedía ver y añadir nuevas áreas cuando había múltiples personalizaciones
+- Los scrolls independientes no resolvían completamente el problema de UX
+- Usuario solicitó separación clara entre configuración y visualización
+
+**Solución implementada: Sistema de Tabs (Pestañas)**
+
+El footer del modal ahora tiene **dos pestañas independientes**:
+
+### **Tab 1: "Áreas"**
+- Pestaña activa por defecto
+- Muestra un **resumen simple** del total de personalización
+- Permite trabajar con las áreas sin distracciones
+- Vista limpia con total destacado en grande
+- Mensaje: "Ver pestaña 'Desglose de Precios' para más detalles"
+
+**Contenido:**
+```
+┌────────────────────────────────────┐
+│ Total Personalización:              │
+│     260,00 €                        │
+│                                     │
+│ Ver pestaña "Desglose de Precios"  │
+│ para más detalles                   │
+└────────────────────────────────────┘
+```
+
+### **Tab 2: "Desglose de Precios"**
+- Muestra el **desglose completo y detallado** de todos los costos
+- Precio base del producto
+- Personalización por cada área:
+  - Técnica (unidades × precio)
+  - Colores adicionales
+  - Cliché / Repetición cliché
+  - Importe mínimo (si aplica)
+  - Subtotal por área
+- Total general
+
+**Contenido:**
+```
+┌────────────────────────────────────┐
+│ Precio base producto:     34,05 €  │
+│ PERSONALIZACIÓN:         260,00 €  │
+│                                     │
+│   » Área 1                          │
+│   DIGITAL 360 (15 uds × 0,400 €)   │
+│   ⚠ Importe mínimo: 35,00 €        │
+│   Cliché fotolito: 30,00 €         │
+│   Subtotal área: 65,00 €           │
+│                                     │
+│   » Área 2...                       │
+│   » Área 3...                       │
+│                                     │
+│ TOTAL:                    294,05 €  │
+└────────────────────────────────────┘
+```
+
+**Beneficios:**
+
+✅ **Siempre visible:** Las áreas ya no se ocultan por el desglose  
+✅ **Flujo claro:** Configurar áreas en una pestaña, ver detalle en otra  
+✅ **Sin scrolls confusos:** Cada pestaña con su propio espacio  
+✅ **UX mejorada:** Separación clara entre acción y revisión  
+✅ **Responsive:** Funciona perfectamente en móviles  
+✅ **Total siempre visible:** En ambas pestañas  
+
+**Cambios técnicos:**
+
+1. **CSS:**
+   - `.wpdm-modal-tabs`: Contenedor de pestañas con borde inferior
+   - `.wpdm-modal-tab`: Estilos para cada pestaña (inactiva/activa)
+   - `.wpdm-modal-tab-content`: Contenido de cada pestaña
+   - `.wpdm-price-simple-summary`: Resumen visual grande en pestaña Áreas
+
+2. **HTML:**
+   - Footer dividido en dos tabs con contenido independiente
+   - Tab "Áreas": Total simple destacado
+   - Tab "Desglose": Desglose completo como antes
+   - Botones de acción (Cancelar/Añadir) siempre visibles
+
+3. **JavaScript:**
+   - Event listener para cambio de tabs
+   - Actualización de totales en ambas pestañas simultáneamente
+   - Log de console para debugging
+
+**Archivos modificados:**
+- `assets/css/wpdm-customization.css`: Nuevos estilos para tabs
+- `includes/class-wpdm-customization-frontend.php`: Estructura HTML y JavaScript
+- `woo-prices-dynamics-makito.php`: Versión actualizada a 2.8.0
+
+**Navegación:**
+- Clic en "Áreas" → Ver total simple y trabajar con áreas
+- Clic en "Desglose de Precios" → Ver desglose completo
+- Tab activo destacado con borde azul inferior
+
+## [2.7.1] - 2025-12-03
+
+### 🐛 Fix crítico - Scrolls responsivos ajustados
+
+**Problema identificado:**
+- En v2.7.0, el desglose de precios seguía creciendo sin control
+- El footer ocupaba todo el espacio disponible
+- Las áreas quedaban ocultas y no se podían añadir más
+- No era responsive
+
+**Causa:**
+- Estilos inline en PHP sobrescribían los CSS
+- Footer sin límite estricto de altura
+- Desglose interno de áreas sin límite
+
+**Solución implementada:**
+
+1. **Body (Áreas) - MÁS ESPACIO:**
+   - `max-height: 50vh` (antes 40vh)
+   - `min-height: 350px` (antes 250px)
+   - `!important` para forzar sobre inline styles
+
+2. **Footer (Resumen de precios) - LIMITADO:**
+   - `max-height: 35vh` (antes 40vh)
+   - `min-height: 200px` (nuevo)
+   - `flex: 0 0 auto` para que NO crezca
+   - `!important` en todas las propiedades
+
+3. **Desglose interno - MUY LIMITADO:**
+   - `max-height: 200px` (antes 300px)
+   - Con scroll propio si hay muchas áreas
+
+**Distribución de espacio ahora:**
+```
+┌────────────────────────────┐
+│ Header (fixed)              │ ~10vh
+├────────────────────────────┤
+│ 📜 ÁREAS (scroll 50vh)      │ 50vh ⭐ MÁS ESPACIO
+│ ▢ Área 1                    │
+│ ▢ Área 2                    │
+│ ▢ Área 3                    │
+│ ▢ ...                       │
+│ [Siempre visible]           │
+├────────────────────────────┤
+│ 💰 FOOTER (scroll 35vh)     │ 35vh ⭐ LIMITADO
+│   Base: XX €                │
+│   ┌──────────────────────┐ │
+│   │ Desglose (200px max) │ │ ⭐ MUY LIMITADO
+│   │ » Área 1: XX €       │ │
+│   │ » Área 2: XX €       │ │
+│   │ (scroll interno)     │ │
+│   └──────────────────────┘ │
+│   TOTAL: XXX €              │
+│   [Botones]                 │
+└────────────────────────────┘
+```
+
+**Resultado:**
+- ✅ Body ocupa 50vh → Más espacio para ver/añadir áreas
+- ✅ Footer limitado a 35vh → No crece sin control
+- ✅ Desglose limitado a 200px → Scroll interno si hay muchas áreas
+- ✅ Siempre se pueden añadir nuevas áreas
+- ✅ Responsive en móviles
+
+**Archivos modificados:**
+- `assets/css/wpdm-customization.css`
+- `woo-prices-dynamics-makito.php` (v2.7.1)
+
 ## [2.7.0] - 2025-12-03
 
 ### 🎨 Mejora UI - Scrolls independientes para áreas y desglose de precios
