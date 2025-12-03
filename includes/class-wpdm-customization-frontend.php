@@ -860,18 +860,11 @@ class WPDM_Customization_Frontend {
 															// Técnica (nombre + precio unitario × cantidad)
 															if (areaPrice.technique_total_price > 0) {
 																var techName = areaPrice.technique_name || 'Técnica';
-																var techQuantity = areaPrice.quantity_used || areaPrice.quantity || totalQuantity;
+																var techQuantity = areaPrice.quantity || totalQuantity;
 																var techUnitPrice = parseFloat(areaPrice.technique_unit_price).toFixed(3).replace('.', ',');
 																var techTotal = parseFloat(areaPrice.technique_total_price).toFixed(2).replace('.', ',');
 																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
-																areasDetailHtml += '<span>' + techName + ' (' + techQuantity + ' uds × ' + techUnitPrice + ' €)';
-																
-																// Mostrar indicador si se aplicó el mínimo
-																if (areaPrice.minimum_applied) {
-																	areasDetailHtml += ' <span style="color: #d00; font-size: 0.85em;" title="Se ha aplicado la cantidad mínima de la técnica">⚠ Mínimo</span>';
-																}
-																
-																areasDetailHtml += '</span>';
+																areasDetailHtml += '<span>' + techName + ' (' + techQuantity + ' uds × ' + techUnitPrice + ' €)</span>';
 																areasDetailHtml += '<span>' + techTotal + ' €</span>';
 																areasDetailHtml += '</div>';
 															}
@@ -906,6 +899,14 @@ class WPDM_Customization_Frontend {
 																areasDetailHtml += '<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">';
 																areasDetailHtml += '<span>Cliché fotolito (' + clicheQty + ' colores × ' + clicheUnitPrice + ' €)</span>';
 																areasDetailHtml += '<span>' + clicheTotal + ' €</span>';
+																areasDetailHtml += '</div>';
+															}
+															
+															// Mostrar advertencia si se aplicó el importe mínimo
+															if (areaPrice.minimum_applied && areaPrice.minimum_amount > 0) {
+																var minAmount = parseFloat(areaPrice.minimum_amount).toFixed(2).replace('.', ',');
+																areasDetailHtml += '<div style="padding: 8px; margin-top: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85em; color: #856404;">';
+																areasDetailHtml += '⚠ <strong>Importe mínimo aplicado:</strong> ' + minAmount + ' €';
 																areasDetailHtml += '</div>';
 															}
 															

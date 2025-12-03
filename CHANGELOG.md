@@ -5,6 +5,50 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.6.3] - 2025-12-03
+
+### 🐛 Corrección CRÍTICA - Importe Mínimo por Técnica
+
+**Problema identificado:**
+- El campo `min` de la técnica se estaba interpretando incorrectamente como **cantidad mínima de unidades**
+- En realidad, `min` es un **IMPORTE MÍNIMO en euros**, no una cantidad
+
+**Error en versión 2.6.2:**
+```php
+// ❌ INCORRECTO: Se aplicaba como cantidad de unidades
+if ($min > 0 && $total_quantity < $min) {
+    $quantity_for_technique = $min; // Tratando 35€ como 35 unidades
+}
+```
+
+**Lógica correcta implementada:**
+```php
+// ✅ CORRECTO: Se aplica como importe mínimo
+$area_total = $technique_total_price + $color_extra_total + $cliche_price + $cliche_repetition_price;
+
+if ($min > 0 && $area_total < $min) {
+    $area_total = $min; // Si el total es 13€ y el mínimo es 35€, se cobra 35€
+    $minimum_applied = true;
+}
+```
+
+**Ejemplo corregido:**
+- **Cálculo real:** 1 ud × 0,625€ + Cliché 30€ = **30,625€**
+- **Mínimo técnica:** 35,00€
+- **Total a cobrar:** **35,00€** (se aplica el importe mínimo)
+- **Indicador visual:** Se muestra un badge amarillo "⚠ Importe mínimo aplicado: 35,00 €"
+
+**Cambios realizados:**
+- `calculate_area_price()`: El mínimo se verifica AL FINAL, comparando el total del área vs el importe mínimo
+- Nuevo campo: `minimum_amount` (importe mínimo configurado)
+- Frontend: Badge amarillo con el mensaje "⚠ Importe mínimo aplicado: X,XX €"
+- Los precios unitarios se mantienen igual, solo se ajusta el total final del área
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php` (líneas 265-375)
+- `includes/class-wpdm-customization-frontend.php` (líneas 860-915)
+- `woo-prices-dynamics-makito.php` (v2.6.3)
+
 ## [2.6.2] - 2025-12-03
 
 ### 🐛 Correcciones Críticas
