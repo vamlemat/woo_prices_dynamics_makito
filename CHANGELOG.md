@@ -5,6 +5,71 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.7.0] - 2025-12-03
+
+### 🎨 Mejora UI - Scrolls independientes para áreas y desglose de precios
+
+**Problema identificado:**
+- Cuando se añaden múltiples áreas, el desglose de precios en el footer crece mucho
+- Esto impide ver y añadir más áreas, ya que el footer tapa el contenido superior
+- No había forma de navegar entre las áreas cuando el desglose era extenso
+
+**Solución implementada: Tres scrolls independientes**
+
+1. **Scroll superior (Áreas de marcaje):**
+   - Zona donde se configuran las áreas
+   - `max-height: 40vh`
+   - Scrollbar personalizado gris
+
+2. **Scroll medio (Footer general):**
+   - Contenedor principal del footer
+   - `max-height: 40vh`
+   - Scrollbar azul corporativo
+
+3. **Scroll interno (Desglose de áreas):**
+   - Solo para el desglose detallado de precios por área
+   - `max-height: 300px`
+   - Scrollbar azul corporativo más delgado
+
+**Beneficios:**
+- ✅ Siempre se pueden ver y añadir nuevas áreas
+- ✅ El desglose de precios no tapa las áreas
+- ✅ Navegación fluida incluso con 5+ áreas personalizadas
+- ✅ Scrollbars personalizados para mejor UX
+- ✅ Colores diferenciados: gris para áreas, azul para precios
+
+**Ejemplo de uso:**
+```
+┌─────────────────────────────────────┐
+│ Header                               │
+├─────────────────────────────────────┤
+│ 📜 SCROLL 1: Áreas (40vh)           │
+│ ▢ Área 1 [expandir/colapsar]        │
+│ ▢ Área 2 [expandir/colapsar]        │
+│ ▢ Área 3 [expandir/colapsar]        │
+│ ▢ ... (scroll gris)                 │
+├─────────────────────────────────────┤
+│ 💰 Footer (40vh max)                │
+│   Base: 36,32 €                     │
+│   ┌───────────────────────────────┐ │
+│   │ 📜 SCROLL 3: Desglose (300px) │ │
+│   │ » Área 1: 75,00 €             │ │
+│   │ » Área 2: 90,00 €             │ │
+│   │ » Área 3: 65,00 €             │ │
+│   │ ... (scroll azul)             │ │
+│   └───────────────────────────────┘ │
+│   TOTAL: 266,32 €                   │
+│   [Cancelar] [Añadir al carrito]    │
+└─────────────────────────────────────┘
+```
+
+**Archivos modificados:**
+- `assets/css/wpdm-customization.css`: Nuevos estilos para scrolls independientes
+- `woo-prices-dynamics-makito.php`: Versión actualizada a 2.7.0
+
+**Responsive:**
+- Los scrolls se adaptan en móviles manteniendo la funcionalidad
+
 ## [2.6.5] - 2025-12-03
 
 ### 🎨 Mejora UI - Simplificación de badge de importe mínimo

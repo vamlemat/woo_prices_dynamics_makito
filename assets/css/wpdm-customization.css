@@ -70,9 +70,30 @@
 }
 
 .wpdm-customization-modal-body {
-	flex: 1;
+	flex: 0 1 auto;
 	overflow-y: auto;
 	padding: 30px;
+	/* Scroll independiente para las áreas */
+	max-height: 40vh;
+	min-height: 250px;
+}
+
+.wpdm-customization-modal-body::-webkit-scrollbar {
+	width: 8px;
+}
+
+.wpdm-customization-modal-body::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 4px;
+}
+
+.wpdm-customization-modal-body::-webkit-scrollbar-thumb {
+	background: #888;
+	border-radius: 4px;
+}
+
+.wpdm-customization-modal-body::-webkit-scrollbar-thumb:hover {
+	background: #555;
 }
 
 .wpdm-customization-loading {
@@ -125,6 +146,11 @@
 	justify-content: space-between;
 	align-items: center;
 	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.wpdm-area-header:hover {
+	background: #ebebeb;
 }
 
 .wpdm-area-checkbox-label {
@@ -263,10 +289,58 @@
 	padding: 20px 30px;
 	border-top: 1px solid #e0e0e0;
 	background: #f9f9f9;
+	/* Scroll independiente para el desglose de precios */
+	max-height: 40vh;
+	overflow-y: auto;
+	flex: 0 1 auto;
+}
+
+.wpdm-customization-modal-footer::-webkit-scrollbar {
+	width: 8px;
+}
+
+.wpdm-customization-modal-footer::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 4px;
+}
+
+.wpdm-customization-modal-footer::-webkit-scrollbar-thumb {
+	background: #0464AC;
+	border-radius: 4px;
+}
+
+.wpdm-customization-modal-footer::-webkit-scrollbar-thumb:hover {
+	background: #061B46;
 }
 
 .wpdm-customization-summary {
 	margin-bottom: 20px;
+}
+
+/* Contenedor del desglose de áreas con scroll */
+.wpdm-price-areas-detail {
+	max-height: 300px;
+	overflow-y: auto;
+	margin-bottom: 15px;
+	padding-right: 5px;
+}
+
+.wpdm-price-areas-detail::-webkit-scrollbar {
+	width: 6px;
+}
+
+.wpdm-price-areas-detail::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 3px;
+}
+
+.wpdm-price-areas-detail::-webkit-scrollbar-thumb {
+	background: #0464AC;
+	border-radius: 3px;
+}
+
+.wpdm-price-areas-detail::-webkit-scrollbar-thumb:hover {
+	background: #061B46;
 }
 
 .wpdm-price-breakdown {
