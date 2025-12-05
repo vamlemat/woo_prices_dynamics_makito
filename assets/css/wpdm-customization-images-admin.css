@@ -1,0 +1,36 @@
+/* Panel de administración de imágenes de personalización */
+
+.wpdm-customization-images-admin .wpdm-image-card {
+	cursor: default;
+}
+
+.wpdm-customization-images-admin .wpdm-image-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.wpdm-customization-images-admin .wpdm-image-card.selected {
+	border-color: #0464AC;
+	border-width: 2px;
+	background: #f0f7ff;
+}
+
+.wpdm-customization-images-admin .button-danger {
+	background: #dc3545 !important;
+	border-color: #dc3545 !important;
+	color: #fff !important;
+}
+
+.wpdm-customization-images-admin .button-danger:hover {
+	background: #c82333 !important;
+	border-color: #bd2130 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.wpdm-customization-images-admin .wpdm-images-grid {
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+		gap: 15px !important;
+	}
+}
+

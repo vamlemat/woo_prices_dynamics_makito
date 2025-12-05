@@ -341,10 +341,11 @@ class WPDM_Cart_Adjustments {
 	public static function display_cart_item_subtotal( $subtotal_html, $cart_item, $cart_item_key ) {
 		$tier_price = isset( $cart_item['wpdm_tier_price'] ) ? floatval( $cart_item['wpdm_tier_price'] ) : 0;
 		$quantity   = isset( $cart_item['quantity'] ) ? absint( $cart_item['quantity'] ) : 0;
-		$customization_price = isset( $cart_item['wpdm_customization_price'] ) ? floatval( $cart_item['wpdm_customization_price'] ) : 0;
 		
+		// CRÍTICO: NO incluir customization_price en el subtotal del producto
+		// El precio de personalización se añade como fee separado
 		if ( $tier_price > 0 && $quantity > 0 ) {
-			$subtotal = ( $tier_price * $quantity ) + $customization_price;
+			$subtotal = $tier_price * $quantity;
 			$subtotal_html = wc_price( $subtotal );
 		}
 

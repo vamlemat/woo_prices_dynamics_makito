@@ -505,7 +505,8 @@ class WPDM_Customization_Frontend {
 									function renderAreaItem(area, index, variation) {
 										console.log('[WPDM] renderAreaItem llamado para área:', area.position, 'variation:', variation);
 										var uniqueId = variation ? 'var-' + variation.variation_id + '-area-' + index : 'global-area-' + index;
-										var html = '<div class="wpdm-area-item" data-area-index="' + index + '" data-unique-id="' + uniqueId + '" style="border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
+										var variationAttr = variation ? ' data-variation-id="' + variation.variation_id + '"' : '';
+										var html = '<div class="wpdm-area-item" data-area-index="' + index + '" data-area-id="' + area.print_area_id + '" data-area-position="' + (area.position || 'Área ' + (index + 1)) + '" data-unique-id="' + uniqueId + '"' + variationAttr + ' style="border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
 										html += '<div class="wpdm-area-header" style="padding: 15px 20px; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">';
 										html += '<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; flex: 1;">';
 										html += '<input type="checkbox" class="wpdm-area-enabled" style="width: 20px; height: 20px;">';
@@ -588,11 +589,8 @@ class WPDM_Customization_Frontend {
 										html += '</div>';
 										html += '</div>';
 										
-										// Observaciones
-										html += '<div style="margin-bottom: 15px;">';
-										html += '<label style="display: block; margin-bottom: 8px; font-weight: 500;">Observaciones:</label>';
-										html += '<textarea class="wpdm-area-observations" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>';
-										html += '</div>';
+										// ELIMINADO: Sección completa de observaciones de la pestaña "Áreas"
+										// Las observaciones solo están en la pestaña "Diseño"
 										
 										html += '</div>'; // Cierre wpdm-area-form-column
 										html += '</div>'; // Cierre wpdm-area-content-grid
@@ -624,22 +622,27 @@ class WPDM_Customization_Frontend {
 									$modal.data('original-areas', response.data.areas);
 									
 									// Event listener para cambio de modo (global vs por color)
-									$(document).on('change', 'input[name="wpdm-customization-mode"]', function() {
-										var mode = $('input[name="wpdm-customization-mode"]:checked').val();
-										var areas = $modal.data('original-areas');
-										var variations = $modal.data('selected-variations');
-										
-										console.log('[WPDM] Cambiando modo a:', mode);
-										console.log('[WPDM] Variaciones disponibles:', variations);
-										
-										if (mode === 'per-color' && variations && variations.length > 0) {
-											// Renderizar por color
-											renderByColor(areas, variations);
-										} else {
-											// Renderizar global
-											renderGlobal(areas);
-										}
-									});
+								$(document).on('change', 'input[name="wpdm-customization-mode"]', function() {
+									var mode = $('input[name="wpdm-customization-mode"]:checked').val();
+									var areas = $modal.data('original-areas');
+									var variations = $modal.data('selected-variations');
+									
+									console.log('[WPDM] Cambiando modo a:', mode);
+									console.log('[WPDM] Variaciones disponibles:', variations);
+									
+									if (mode === 'per-color' && variations && variations.length > 0) {
+										// Renderizar por color
+										renderByColor(areas, variations);
+									} else {
+										// Renderizar global
+										renderGlobal(areas);
+									}
+									
+									// Actualizar tab de imágenes después de cambiar el modo
+									setTimeout(function() {
+										updateImagesTab();
+									}, 200);
+								});
 									
 									// Función para renderizar modo global
 									function renderGlobal(areas) {
@@ -659,7 +662,7 @@ class WPDM_Customization_Frontend {
 										
 										variations.forEach(function(variation, varIndex) {
 											// Acordeón por color
-											html += '<div class="wpdm-color-accordion" style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden;">';
+											html += '<div class="wpdm-color-accordion" data-variation-id="' + variation.variation_id + '" data-variation-index="' + varIndex + '" data-color="' + (variation.color || '') + '" data-size="' + (variation.size || '') + '" style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden;">';
 											html += '<div class="wpdm-color-accordion-header" data-variation-index="' + varIndex + '" style="padding: 15px 20px; background: linear-gradient(135deg, #0464AC 0%, #061B46 100%); color: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">';
 											html += '<strong style="font-size: 1.1em;">' + variation.full_name + ' (' + variation.quantity + ' uds)</strong>';
 											html += '<span class="wpdm-accordion-toggle">▼</span>';
@@ -712,8 +715,9 @@ class WPDM_Customization_Frontend {
 										var $areaItem = $(this).closest('.wpdm-area-item');
 										var enabled = $(this).is(':checked');
 										$areaItem.find('.wpdm-area-content').toggle(enabled);
-										// Recalcular precios
+										// Recalcular precios y actualizar imágenes
 										calculatePrices();
+										updateImagesTab();
 									});
 									
 									// Event listeners para cambios que afectan el precio
@@ -726,6 +730,7 @@ class WPDM_Customization_Frontend {
 											console.log('[WPDM] Repetición cliché:', isChecked ? 'ACTIVADA' : 'DESACTIVADA');
 										}
 										calculatePrices();
+										updateImagesTab();
 									});
 									
 									// Evitar que los clics en el header del área cierren el acordeón
@@ -953,9 +958,454 @@ class WPDM_Customization_Frontend {
 										});
 									}
 									
+									// Función para actualizar el tab de diseño según áreas habilitadas
+									function updateImagesTab() {
+										console.log('[WPDM] 🎨 Actualizando tab de diseño...');
+										
+										var mode = $('input[name="wpdm-customization-mode"]:checked').val() || 'global';
+										var $uploadList = $('#wpdm-images-upload-list');
+										var html = '';
+										
+										// Paleta de colores predefinida (estilo Makito) con códigos PANTONE
+										var colorPalette = [
+											{name: 'Negro', hex: '#000000', pantone: 'Black C'},
+											{name: 'Gris Oscuro', hex: '#666666', pantone: 'Cool Gray 11 C'},
+											{name: 'Blanco', hex: '#FFFFFF', pantone: 'White C'},
+											{name: 'Rojo', hex: '#FF0000', pantone: 'Red 032 C'},
+											{name: 'Rosa Fucsia', hex: '#FF1493', pantone: 'Pink C'},
+											{name: 'Granate', hex: '#8B0000', pantone: 'Rhodamine Red C'},
+											{name: 'Azul', hex: '#0000FF', pantone: 'Blue 072 C'},
+											{name: 'Naranja', hex: '#FF8C00', pantone: 'Orange 021 C'},
+											{name: 'Azul Oscuro', hex: '#00008B', pantone: 'Blue 286 C'},
+											{name: 'Amarillo', hex: '#FFD700', pantone: 'Yellow C'},
+											{name: 'Naranja Rojizo', hex: '#FF4500', pantone: 'Orange 021 C'},
+											{name: 'Verde', hex: '#008000', pantone: 'Green C'},
+											{name: 'Verde Oscuro', hex: '#006400', pantone: 'Green 356 C'},
+											{name: 'Marrón', hex: '#8B4513', pantone: 'Brown 478 C'},
+											{name: 'Marrón Claro', hex: '#D2691E', pantone: 'Brown 478 C'},
+											{name: 'Gris Claro', hex: '#D3D3D3', pantone: 'Cool Gray 3 C'}
+										];
+										
+										// Función auxiliar para generar el selector de color
+										function generateColorSelector(colorNum, uniqueId) {
+											var selectorHtml = '<div class="wpdm-color-selector-wrapper" style="margin-bottom: 15px;">';
+											selectorHtml += '<label style="display: block; margin-bottom: 8px; font-size: 0.9em; color: #666; font-weight: 500;">Color ' + colorNum + ':</label>';
+											selectorHtml += '<div style="display: flex; align-items: center; gap: 10px;">';
+											
+											// Icono de gota (paint bucket)
+											selectorHtml += '<div class="wpdm-color-preview" data-color-num="' + colorNum + '" style="width: 32px; height: 32px; border: 2px solid #ced4da; border-radius: 4px; cursor: pointer; background: #fff; position: relative;">';
+											selectorHtml += '<span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.2em;">🎨</span>';
+											selectorHtml += '</div>';
+											
+											// Input oculto para almacenar el color seleccionado
+											selectorHtml += '<input type="hidden" class="wpdm-pantone-input" data-color-num="' + colorNum + '" value="" />';
+											
+											// Texto del color seleccionado
+											selectorHtml += '<span class="wpdm-color-selected-text" style="flex: 1; font-size: 0.9em; color: #999;">Seleccione un color...</span>';
+											
+											// Dropdown de colores (oculto por defecto)
+											selectorHtml += '<div class="wpdm-color-dropdown" data-color-num="' + colorNum + '" style="display: none; position: absolute; background: #fff; border: 2px solid #ced4da; border-radius: 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-top: 5px;">';
+											selectorHtml += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">';
+											
+											colorPalette.forEach(function(color) {
+												var borderStyle = color.hex === '#FFFFFF' ? 'border: 2px solid #ddd;' : '';
+												selectorHtml += '<div class="wpdm-color-option" data-color-name="' + color.name + '" data-color-hex="' + color.hex + '" data-pantone="' + (color.pantone || color.name) + '" style="width: 35px; height: 40px; background: ' + color.hex + '; ' + borderStyle + ' border-radius: 50% 50% 50% 0; transform: rotate(-45deg); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" title="' + color.name + ' (' + (color.pantone || color.name) + ')"></div>';
+											});
+											
+											selectorHtml += '</div>';
+											selectorHtml += '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">';
+											selectorHtml += '<input type="text" class="wpdm-custom-pantone" placeholder="O indique PANTONE personalizado" style="width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.85em;" />';
+											selectorHtml += '</div>';
+											selectorHtml += '</div>';
+											
+											selectorHtml += '</div>';
+											selectorHtml += '</div>';
+											
+											return selectorHtml;
+										}
+										
+										if (mode === 'global') {
+											// MODO GLOBAL: Un bloque completo por área habilitada
+											$('.wpdm-area-item').each(function() {
+												var $area = $(this);
+												var $checkbox = $area.find('.wpdm-area-enabled');
+												
+												if ($checkbox.is(':checked')) {
+													var areaId = $area.data('area-id');
+													var areaIndex = $area.data('area-index');
+													var areaPosition = $area.data('area-position');
+													var techniqueSelect = $area.find('.wpdm-area-technique');
+													var techniqueText = techniqueSelect.find('option:selected').text();
+													var colorsSelect = $area.find('.wpdm-area-colors');
+													var numColors = parseInt(colorsSelect.val()) || 0;
+													
+													// Contenedor principal del área
+													html += '<div class="wpdm-design-area-block" data-area-id="' + areaId + '" data-area-index="' + areaIndex + '" data-mode="global" style="background: #fff; border: 2px solid #0464AC; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">';
+													
+													// Header del área
+													html += '<div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 20px;">';
+													html += '<h3 style="margin: 0 0 5px 0; color: #0464AC; font-size: 1.2em;">📐 ' + areaPosition + '</h3>';
+													html += '<p style="margin: 0; font-size: 0.9em; color: #666;">Técnica: <strong>' + techniqueText + '</strong></p>';
+													html += '</div>';
+													
+													// Campos PANTONE (si hay colores seleccionados)
+													if (numColors > 0) {
+														html += '<div class="wpdm-pantone-section" style="margin-bottom: 20px; position: relative;">';
+														html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">🎨</span> Colores PANTONE</h4>';
+														
+														for (var i = 1; i <= numColors; i++) {
+															html += generateColorSelector(i, 'global-' + areaIndex);
+														}
+														
+														html += '</div>';
+													}
+													
+													// Upload de imagen
+													html += '<div class="wpdm-image-section" style="margin-bottom: 20px;">';
+													html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">📸</span> Adjuntar imagen</h4>';
+													html += '<div style="display: flex; gap: 10px; align-items: flex-start;">';
+													html += '<input type="file" class="wpdm-image-upload-input" accept="image/jpeg,image/jpg,image/png,application/pdf,application/postscript,application/illustrator,.eps,.ai,.cdr" data-area-id="' + areaId + '" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9em;" />';
+													html += '<span title="Formatos permitidos: JPG, PNG, PDF, EPS, AI, CDR (máx. 5MB)" style="color: #6c757d; font-size: 0.85em; white-space: nowrap; cursor: help;">ℹ️</span>';
+													html += '</div>';
+													html += '<div class="wpdm-image-preview" style="margin-top: 15px; display: none;">';
+													html += '<img src="" alt="Preview" style="max-width: 200px; max-height: 200px; border: 2px solid #dee2e6; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />';
+													html += '<button type="button" class="wpdm-remove-image" style="display: block; margin-top: 8px; padding: 6px 12px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; transition: background 0.2s;">🗑️ Eliminar</button>';
+													html += '</div>';
+													html += '</div>';
+													
+													// Observaciones
+													html += '<div class="wpdm-observations-section">';
+													html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">📝</span> Observaciones</h4>';
+													html += '<textarea class="wpdm-observations-input" rows="4" placeholder="Escribe aquí cualquier observación o detalle adicional..." style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9em; font-family: inherit; resize: vertical;"></textarea>';
+													html += '</div>';
+													
+													html += '</div>'; // Cierre del bloque de área
+												}
+											});
+										} else {
+											// MODO PER-COLOR: Un bloque por cada combinación área + variación
+											$('.wpdm-color-accordion').each(function() {
+												var $accordion = $(this);
+												var variationId = $accordion.data('variation-id');
+												var variationColor = $accordion.data('color') || 'N/A';
+												var variationSize = $accordion.data('size') || 'N/A';
+												
+												// Buscar áreas habilitadas en este acordeón
+												$accordion.find('.wpdm-area-item').each(function() {
+													var $area = $(this);
+													var $checkbox = $area.find('.wpdm-area-enabled');
+													
+													if ($checkbox.is(':checked')) {
+														var areaId = $area.data('area-id');
+														var areaIndex = $area.data('area-index');
+														var areaPosition = $area.data('area-position');
+														var techniqueSelect = $area.find('.wpdm-area-technique');
+														var techniqueText = techniqueSelect.find('option:selected').text();
+														var colorsSelect = $area.find('.wpdm-area-colors');
+														var numColors = parseInt(colorsSelect.val()) || 0;
+														
+														// Contenedor principal del área
+														html += '<div class="wpdm-design-area-block" data-area-id="' + areaId + '" data-area-index="' + areaIndex + '" data-variation-id="' + variationId + '" data-mode="per-color" style="background: #fff; border: 2px solid #0464AC; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">';
+														
+														// Header del área con info de variación
+														html += '<div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 20px;">';
+														html += '<h3 style="margin: 0 0 5px 0; color: #0464AC; font-size: 1.2em;">📐 ' + areaPosition + '</h3>';
+														html += '<p style="margin: 0 0 5px 0; font-size: 0.9em; color: #666;">Técnica: <strong>' + techniqueText + '</strong></p>';
+														html += '<p style="margin: 0; font-size: 0.85em; color: #999; font-style: italic;">🔴 Color: <strong>' + variationColor + '</strong> | Talla: <strong>' + variationSize + '</strong></p>';
+														html += '</div>';
+														
+														// Campos PANTONE (si hay colores seleccionados)
+														if (numColors > 0) {
+															html += '<div class="wpdm-pantone-section" style="margin-bottom: 20px; position: relative;">';
+															html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">🎨</span> Colores PANTONE</h4>';
+															
+															for (var i = 1; i <= numColors; i++) {
+																html += generateColorSelector(i, 'var-' + variationId + '-' + areaIndex);
+															}
+															
+															html += '</div>';
+														}
+														
+														// Upload de imagen
+														html += '<div class="wpdm-image-section" style="margin-bottom: 20px;">';
+														html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">📸</span> Adjuntar imagen</h4>';
+														html += '<div style="display: flex; gap: 10px; align-items: flex-start;">';
+														html += '<input type="file" class="wpdm-image-upload-input" accept="image/jpeg,image/jpg,image/png,application/pdf,application/postscript,application/illustrator,.eps,.ai,.cdr" data-area-id="' + areaId + '" data-variation-id="' + variationId + '" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9em;" />';
+														html += '<span title="Formatos permitidos: JPG, PNG, PDF, EPS, AI, CDR (máx. 5MB)" style="color: #6c757d; font-size: 0.85em; white-space: nowrap; cursor: help;">ℹ️</span>';
+														html += '</div>';
+														html += '<div class="wpdm-image-preview" style="margin-top: 15px; display: none;">';
+														html += '<img src="" alt="Preview" style="max-width: 200px; max-height: 200px; border: 2px solid #dee2e6; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />';
+														html += '<button type="button" class="wpdm-remove-image" style="display: block; margin-top: 8px; padding: 6px 12px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; transition: background 0.2s;">🗑️ Eliminar</button>';
+														html += '</div>';
+														html += '</div>';
+														
+														// Observaciones
+														html += '<div class="wpdm-observations-section">';
+														html += '<h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em; display: flex; align-items: center; gap: 8px;"><span style="font-size: 1.3em;">📝</span> Observaciones</h4>';
+														html += '<textarea class="wpdm-observations-input" rows="4" placeholder="Escribe aquí cualquier observación o detalle adicional..." style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9em; font-family: inherit; resize: vertical;"></textarea>';
+														html += '</div>';
+														
+														html += '</div>'; // Cierre del bloque de área
+													}
+												});
+											});
+										}
+										
+										if (html === '') {
+											html = '<div style="text-align: center; padding: 40px; color: #999;">';
+											html += '<p style="font-size: 1.5em; margin: 0;">🎨</p>';
+											html += '<p style="margin: 10px 0 0 0; font-size: 1.1em;">Selecciona áreas en la pestaña "Áreas" para completar el diseño.</p>';
+											html += '</div>';
+										}
+										
+										$uploadList.html(html);
+										console.log('[WPDM] Tab de diseño actualizado. Modo:', mode);
+									}
+									
+									// Objeto para almacenar datos de diseño (imágenes, PANTONE, observaciones)
+									var designData = {};
+									
+									// Función auxiliar para crear clave única
+									function getDesignKey($block) {
+										var areaIndex = $block.data('area-index');
+										var variationId = $block.data('variation-id');
+										var mode = $block.data('mode');
+										return mode === 'global' ? 'area-' + areaIndex : 'area-' + areaIndex + '-var-' + variationId;
+									}
+									
+									// Función para guardar datos de diseño de un bloque
+									function saveDesignData($block) {
+										var key = getDesignKey($block);
+										
+										if (!designData[key]) {
+											designData[key] = {
+												areaId: $block.data('area-id'),
+												areaIndex: $block.data('area-index'),
+												variationId: $block.data('variation-id') || null,
+												mode: $block.data('mode'),
+												pantones: [],
+												image: null,
+												observations: ''
+											};
+										}
+										
+										// Recopilar valores PANTONE
+										var pantones = [];
+										$block.find('.wpdm-pantone-input').each(function() {
+											var value = $(this).val().trim();
+											if (value) {
+												pantones.push({
+													colorNum: $(this).data('color-num'),
+													value: value
+												});
+											}
+										});
+										designData[key].pantones = pantones;
+										
+										// Observaciones
+										designData[key].observations = $block.find('.wpdm-observations-input').val().trim();
+										
+										// Guardar en modal data
+										$modal.data('design-data', designData);
+										console.log('[WPDM] 💾 Datos de diseño actualizados para:', key);
+									}
+									
+									// Event listener: cuando se selecciona un archivo
+									$(document).on('change', '.wpdm-image-upload-input', function() {
+										var $input = $(this);
+										var file = this.files[0];
+										
+										if (!file) {
+											return;
+										}
+										
+										// Validar tipo de archivo
+										var fileName = file.name.toLowerCase();
+										var validExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.eps', '.ai', '.cdr'];
+										var validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/postscript', 'application/illustrator'];
+										
+										var hasValidExtension = validExtensions.some(function(ext) {
+											return fileName.endsWith(ext);
+										});
+										
+										if (!hasValidExtension && !validTypes.includes(file.type)) {
+											alert('⚠️ Tipo de archivo no válido. Solo se permiten JPG, PNG, PDF, EPS, AI y CDR.');
+											$input.val('');
+											return;
+										}
+										
+										// Validar tamaño (5MB máximo)
+										var maxSize = 5 * 1024 * 1024; // 5MB en bytes
+										if (file.size > maxSize) {
+											alert('⚠️ El archivo es demasiado grande. Tamaño máximo: 5MB.');
+											$input.val('');
+											return;
+										}
+										
+										var $block = $input.closest('.wpdm-design-area-block');
+										var key = getDesignKey($block);
+										
+										// Inicializar si no existe
+										if (!designData[key]) {
+											designData[key] = {
+												areaId: $block.data('area-id'),
+												areaIndex: $block.data('area-index'),
+												variationId: $block.data('variation-id') || null,
+												mode: $block.data('mode'),
+												pantones: [],
+												image: null,
+												observations: ''
+											};
+										}
+										
+										// Almacenar el archivo
+										designData[key].image = file;
+										console.log('[WPDM] 📸 Imagen cargada:', file.name, 'Key:', key);
+										
+										// Mostrar preview solo si es imagen
+										var $preview = $block.find('.wpdm-image-preview');
+										if (file.type.startsWith('image/')) {
+											var reader = new FileReader();
+											reader.onload = function(e) {
+												$preview.find('img').attr('src', e.target.result).show();
+												$preview.find('p').remove(); // Limpiar texto de PDF previo
+												$preview.show();
+											};
+											reader.readAsDataURL(file);
+										} else {
+											// Para PDF, mostrar un icono o mensaje
+											$preview.find('img').attr('src', '').hide();
+											$preview.find('p').remove(); // Limpiar texto previo
+											$preview.prepend('<p style="margin: 0 0 5px 0; color: #666;">📄 ' + file.name + '</p>');
+											$preview.show();
+										}
+										
+										// Guardar en modal data
+										$modal.data('design-data', designData);
+									});
+									
+									// Event listener: eliminar imagen
+									$(document).on('click', '.wpdm-remove-image', function() {
+										var $block = $(this).closest('.wpdm-design-area-block');
+										var key = getDesignKey($block);
+										
+										// Eliminar imagen del objeto
+										if (designData[key]) {
+											designData[key].image = null;
+										}
+										console.log('[WPDM] 🗑️ Imagen eliminada. Key:', key);
+										
+										// Limpiar UI
+										$block.find('.wpdm-image-upload-input').val('');
+										$block.find('.wpdm-image-preview').hide();
+										$block.find('.wpdm-image-preview img').attr('src', '');
+										$block.find('.wpdm-image-preview p').remove();
+										
+										// Actualizar modal data
+										$modal.data('design-data', designData);
+									});
+									
+									// Event listener: cambios en campos PANTONE
+									$(document).on('input', '.wpdm-pantone-input', function() {
+										var $block = $(this).closest('.wpdm-design-area-block');
+										saveDesignData($block);
+									});
+									
+									// Event listener: cambios en observaciones
+									$(document).on('input', '.wpdm-observations-input', function() {
+										var $block = $(this).closest('.wpdm-design-area-block');
+										saveDesignData($block);
+									});
+									
+									// Event listener: abrir/cerrar selector de color
+									$(document).on('click', '.wpdm-color-preview', function(e) {
+										e.stopPropagation();
+										var $wrapper = $(this).closest('.wpdm-color-selector-wrapper');
+										var $dropdown = $wrapper.find('.wpdm-color-dropdown');
+										
+										// Cerrar todos los otros dropdowns
+										$('.wpdm-color-dropdown').not($dropdown).hide();
+										
+										// Toggle este dropdown
+										$dropdown.toggle();
+									});
+									
+									// Event listener: seleccionar color de la paleta
+									$(document).on('click', '.wpdm-color-option', function(e) {
+										e.stopPropagation();
+										var colorName = $(this).data('color-name');
+										var colorHex = $(this).data('color-hex');
+										var pantoneCode = $(this).data('pantone') || colorName; // CRÍTICO: Usar código PANTONE, no nombre
+										var $wrapper = $(this).closest('.wpdm-color-selector-wrapper');
+										var $dropdown = $wrapper.find('.wpdm-color-dropdown');
+										var $preview = $wrapper.find('.wpdm-color-preview');
+										var $input = $wrapper.find('.wpdm-pantone-input');
+										var $text = $wrapper.find('.wpdm-color-selected-text');
+										
+										// Actualizar visuales
+										$preview.css('background', colorHex);
+										$preview.find('span').text('');
+										$text.text(pantoneCode).css('color', '#333'); // Mostrar código PANTONE
+										$input.val(pantoneCode); // Guardar código PANTONE, no nombre
+										
+										// Cerrar dropdown
+										$dropdown.hide();
+										
+										// Guardar datos
+										var $block = $wrapper.closest('.wpdm-design-area-block');
+										saveDesignData($block);
+										
+										console.log('[WPDM] 🎨 Color seleccionado:', colorName, 'PANTONE:', pantoneCode);
+									});
+									
+									// Event listener: PANTONE personalizado
+									$(document).on('input', '.wpdm-custom-pantone', function() {
+										var customValue = $(this).val().trim();
+										if (customValue) {
+											var $wrapper = $(this).closest('.wpdm-color-selector-wrapper');
+											var $dropdown = $wrapper.find('.wpdm-color-dropdown');
+											var $preview = $wrapper.find('.wpdm-color-preview');
+											var $input = $wrapper.find('.wpdm-pantone-input');
+											var $text = $wrapper.find('.wpdm-color-selected-text');
+											
+											// Actualizar
+											$preview.css('background', '#fff');
+											$preview.find('span').text('🎨');
+											$text.text(customValue).css('color', '#333');
+											$input.val(customValue);
+											
+											// Guardar
+											var $block = $wrapper.closest('.wpdm-design-area-block');
+											saveDesignData($block);
+										}
+									});
+									
+									// Event listener: cerrar dropdowns al hacer clic fuera
+									$(document).on('click', function(e) {
+										if (!$(e.target).closest('.wpdm-color-selector-wrapper').length) {
+											$('.wpdm-color-dropdown').hide();
+										}
+									});
+									
+									// Event listener: hover sobre colores
+									$(document).on('mouseenter', '.wpdm-color-option', function() {
+										$(this).css({
+											'transform': 'rotate(-45deg) scale(1.1)',
+											'box-shadow': '0 2px 8px rgba(0,0,0,0.2)'
+										});
+									});
+									
+									$(document).on('mouseleave', '.wpdm-color-option', function() {
+										$(this).css({
+											'transform': 'rotate(-45deg) scale(1)',
+											'box-shadow': 'none'
+										});
+									});
+									
 									// Calcular precios inicialmente
 									setTimeout(function() {
 										calculatePrices();
+										updateImagesTab();
 									}, 500);
 								} else {
 									$modal.find('.wpdm-customization-loading').hide();
@@ -985,6 +1435,371 @@ class WPDM_Customization_Frontend {
 					$modal[0].style.display = 'none';
 					$modal.hide();
 					$('body').removeClass('wpdm-modal-open');
+				});
+				
+				// Botón Cancelar
+				$(document).on('click', '.wpdm-customization-cancel', function() {
+					console.log('[WPDM] Cancelando personalización');
+					var $modal = $('#wpdm-customization-modal');
+					$modal[0].style.display = 'none';
+					$modal.hide();
+					$('body').removeClass('wpdm-modal-open');
+				});
+				
+				// Botón Añadir al carrito
+				$(document).on('click', '.wpdm-customization-add-to-cart', function() {
+					console.group('🛒 [WPDM] Añadiendo al carrito con personalización...');
+					
+					var $button = $(this);
+					if ($button.prop('disabled')) {
+						console.log('❌ Botón deshabilitado');
+						console.groupEnd();
+						return;
+					}
+					
+					var $modal = $('#wpdm-customization-modal');
+					var productId = $modal.data('product-id');
+					var variations = $modal.data('selected-variations') || [];
+					var designData = $modal.data('design-data') || {};
+					var mode = $('input[name="wpdm-customization-mode"]:checked').val() || 'global';
+					
+					console.log('Product ID:', productId);
+					console.log('Mode:', mode);
+					console.log('Variations:', variations);
+					console.log('Design Data:', designData);
+					
+					// Recopilar datos de personalización completos
+					var customizationData = {
+						mode: mode,
+						areas: []
+					};
+					
+					$('.wpdm-area-item').each(function() {
+						var $area = $(this);
+						var $checkbox = $area.find('.wpdm-area-enabled');
+						
+						if (!$checkbox.is(':checked')) return;
+						
+						var areaId = $area.data('area-id');
+						var areaIndex = $area.data('area-index');
+						var areaPosition = $area.data('area-position');
+						var variationId = $area.data('variation-id') || null;
+						var techniqueSelect = $area.find('.wpdm-area-technique');
+						var techniqueRef = techniqueSelect.val();
+						var techniqueText = techniqueSelect.find('option:selected').text();
+						var colorsSelect = $area.find('.wpdm-area-colors');
+						var numColors = parseInt(colorsSelect.val()) || 0;
+						var clicheRepetition = $area.find('.wpdm-area-cliche-repetition').is(':checked');
+						var clicheOrderNumber = $area.find('.wpdm-area-cliche-order-number').val() || '';
+						var widthInput = $area.find('.wpdm-area-width');
+						var heightInput = $area.find('.wpdm-area-height');
+						var width = widthInput.length ? parseFloat(widthInput.val()) || 0 : 0;
+						var height = heightInput.length ? parseFloat(heightInput.val()) || 0 : 0;
+						
+						// Buscar cantidad específica de esta variación (si aplica)
+						var quantity = 0;
+						if (mode === 'per-color' && variationId) {
+							var variation = variations.find(function(v) { return v.variation_id == variationId; });
+							if (variation) {
+								quantity = parseInt(variation.quantity) || 0;
+							}
+						}
+						
+						var areaData = {
+							enabled: true, // CRÍTICO: requerido por calculate_total_customization_price
+							area_id: areaId,
+							area_index: areaIndex,
+							area_position: areaPosition,
+							variation_id: variationId,
+							technique_ref: techniqueRef,
+							technique_name: techniqueText,
+							colors: numColors, // CRÍTICO: debe ser 'colors' no 'colors_selected'
+							colors_selected: numColors, // Para mostrar en metabox
+							width: width, // Medidas de impresión
+							height: height, // Medidas de impresión
+							cliche_repetition: clicheRepetition,
+							cliche_order_number: clicheOrderNumber,
+							quantity: quantity
+						};
+						
+						customizationData.areas.push(areaData);
+					});
+					
+					console.log('Datos de personalización:', customizationData);
+					
+					// Deshabilitar botón y mostrar loading
+					$button.prop('disabled', true).text('Procesando...');
+					
+					// Preparar FormData para subir archivos
+					var formData = new FormData();
+					formData.append('action', 'wpdm_add_customized_to_cart');
+					formData.append('nonce', wpdmCustomization.nonce);
+					formData.append('product_id', productId);
+					formData.append('mode', mode);
+					formData.append('variations', JSON.stringify(variations));
+					formData.append('customization_data', JSON.stringify(customizationData));
+					
+					// Añadir PANTONE y observaciones a customization_data primero
+					Object.keys(designData).forEach(function(key) {
+						var data = designData[key];
+						
+						customizationData.areas.forEach(function(area) {
+							if (area.area_index == data.areaIndex && 
+								(!data.variationId || area.variation_id == data.variationId)) {
+								area.pantones = data.pantones || [];
+								area.observations = data.observations || '';
+								
+								console.log('[WPDM] Añadiendo diseño a área:', area.area_index, {
+									pantones: area.pantones.length,
+									observations: area.observations ? 'Sí' : 'No'
+								});
+							}
+						});
+					});
+					
+					console.log('[WPDM] 📋 Datos completos para enviar:', customizationData);
+					
+					// Actualizar customization_data con PANTONE y observaciones
+					formData.set('customization_data', JSON.stringify(customizationData));
+					
+					// Añadir archivos de imagen CORRECTAMENTE
+					var fileIndex = 0;
+					Object.keys(designData).forEach(function(key) {
+						var data = designData[key];
+						
+						// Añadir imagen si existe
+						if (data.image) {
+							// Enviar archivo SIN [file], directamente como array
+							formData.append('images[]', data.image);
+							formData.append('images_meta[' + fileIndex + '][area_id]', data.areaId);
+							formData.append('images_meta[' + fileIndex + '][area_index]', data.areaIndex);
+							formData.append('images_meta[' + fileIndex + '][variation_id]', data.variationId || '');
+							fileIndex++;
+						}
+					});
+					
+					console.log('📤 Enviando datos al servidor...');
+					
+					// Enviar al servidor
+					$.ajax({
+						url: wpdmCustomization.ajax_url,
+						type: 'POST',
+						data: formData,
+						processData: false,
+						contentType: false,
+					success: function(response) {
+						console.log('📥 Respuesta recibida:', response);
+						
+						// Verificar si la respuesta es HTML en lugar de JSON
+						if (typeof response === 'string' && response.indexOf('<!DOCTYPE') !== -1) {
+							console.error('❌ ERROR: Se recibió HTML en lugar de JSON');
+							console.error('Primeros 500 caracteres:', response.substring(0, 500));
+							alert('❌ Error del servidor. Revisa la consola del navegador (F12) y el error_log de PHP.');
+							$button.prop('disabled', false).text('Añadir al carrito');
+							console.groupEnd();
+							return;
+						}
+						
+						// Verificar que response tenga la estructura correcta
+						if (!response || typeof response !== 'object') {
+							console.error('❌ ERROR: Respuesta inválida', response);
+							alert('❌ Error: Respuesta del servidor inválida');
+							$button.prop('disabled', false).text('Añadir al carrito');
+							console.groupEnd();
+							return;
+						}
+						
+						if (response.success) {
+							console.log('✅ Producto añadido al carrito exitosamente');
+							
+							// Mostrar mensaje de éxito
+							alert('✅ Producto personalizado añadido al carrito correctamente');
+							
+							// Cerrar modal
+							$modal[0].style.display = 'none';
+							$modal.hide();
+							$('body').removeClass('wpdm-modal-open');
+							
+							// Actualizar contador del carrito (si existe)
+							if (typeof(wc_add_to_cart_params) !== 'undefined') {
+								$(document.body).trigger('wc_fragment_refresh');
+							}
+							
+							// Scroll al top
+							$('html, body').animate({ scrollTop: 0 }, 500);
+							
+						} else {
+							var errorMsg = 'No se pudo añadir al carrito';
+							if (response.data && response.data.message) {
+								errorMsg = response.data.message;
+							}
+							console.error('❌ Error:', errorMsg);
+							alert('❌ Error: ' + errorMsg);
+							$button.prop('disabled', false).text('Añadir al carrito');
+						}
+						
+						console.groupEnd();
+					},
+						error: function(xhr, status, error) {
+							console.error('❌ Error AJAX:', xhr, status, error);
+							alert('❌ Error al procesar la solicitud. Por favor, intenta de nuevo.');
+							$button.prop('disabled', false).text('Añadir al carrito');
+							console.groupEnd();
+						}
+					});
+				});
+				
+				// Botón Añadir al carrito con personalización
+				$(document).on('click', '.wpdm-customization-add-to-cart', function() {
+					console.group('🛒 [WPDM] Añadiendo al carrito con personalización...');
+					
+					var $button = $(this);
+					var $modal = $('#wpdm-customization-modal');
+					
+					// Verificar que el botón no esté deshabilitado
+					if ($button.prop('disabled')) {
+						console.warn('Botón deshabilitado. No hay personalización válida.');
+						console.groupEnd();
+						return;
+					}
+					
+					// Deshabilitar botón y mostrar loading
+					$button.prop('disabled', true).text('Procesando...');
+					
+					// Recopilar todos los datos
+					var productId = $modal.data('product-id');
+					var variations = $modal.data('selected-variations') || [];
+					var designData = $modal.data('design-data') || {};
+					var mode = $('input[name="wpdm-customization-mode"]:checked').val() || 'global';
+					
+					console.log('Product ID:', productId);
+					console.log('Mode:', mode);
+					console.log('Variations:', variations);
+					console.log('Design Data:', designData);
+					
+					// Recopilar datos de personalización de cada área
+					var customizationData = {
+						mode: mode,
+						areas: []
+					};
+					
+					$('.wpdm-area-item').each(function() {
+						var $area = $(this);
+						var $checkbox = $area.find('.wpdm-area-enabled');
+						
+						if ($checkbox.is(':checked')) {
+							var areaId = $area.data('area-id');
+							var areaIndex = $area.data('area-index');
+							var areaPosition = $area.data('area-position');
+							var variationId = $area.data('variation-id') || null;
+							var techniqueSelect = $area.find('.wpdm-area-technique');
+							var techniqueRef = techniqueSelect.val();
+							var techniqueText = techniqueSelect.find('option:selected').text();
+							var colorsSelect = $area.find('.wpdm-area-colors');
+							var numColors = parseInt(colorsSelect.val()) || 0;
+							var widthInput = $area.find('.wpdm-area-width');
+							var heightInput = $area.find('.wpdm-area-height');
+							var quantityInput = $area.find('.wpdm-area-quantity');
+							var clicheRepetition = $area.find('.wpdm-area-cliche-repetition').is(':checked');
+							var clicheOrderNumber = $area.find('.wpdm-area-cliche-order-number').val() || '';
+							
+							var areaData = {
+								area_id: areaId,
+								area_index: areaIndex,
+								area_position: areaPosition,
+								variation_id: variationId,
+								technique_ref: techniqueRef,
+								technique_name: techniqueText,
+								colors: numColors,
+								width: widthInput.val() || '',
+								height: heightInput.val() || '',
+								quantity: quantityInput.val() || '',
+								cliche_repetition: clicheRepetition,
+								cliche_order_number: clicheOrderNumber
+							};
+							
+							customizationData.areas.push(areaData);
+						}
+					});
+					
+					console.log('Customization Data:', customizationData);
+					
+					// Preparar FormData para enviar archivos
+					var formData = new FormData();
+					formData.append('action', 'wpdm_add_customized_to_cart');
+					formData.append('nonce', wpdmCustomization.nonce);
+					formData.append('product_id', productId);
+					formData.append('mode', mode);
+					formData.append('variations', JSON.stringify(variations));
+					formData.append('customization_data', JSON.stringify(customizationData));
+					
+					// Añadir archivos de imágenes
+					var fileCount = 0;
+					Object.keys(designData).forEach(function(key) {
+						var data = designData[key];
+						if (data.image && data.image instanceof File) {
+							formData.append('images[' + key + ']', data.image);
+							fileCount++;
+						}
+						// Añadir datos de diseño (PANTONE + observaciones) sin imagen
+						formData.append('design[' + key + ']', JSON.stringify({
+							areaId: data.areaId,
+							areaIndex: data.areaIndex,
+							variationId: data.variationId,
+							pantones: data.pantones || [],
+							observations: data.observations || ''
+						}));
+					});
+					
+					console.log('Total archivos a subir:', fileCount);
+					console.log('FormData preparado');
+					
+				// Enviar AJAX
+				$.ajax({
+					url: wpdmCustomization.ajax_url,
+					type: 'POST',
+					data: formData,
+						processData: false,
+						contentType: false,
+						success: function(response) {
+							console.log('📥 Respuesta recibida:', response);
+							
+							if (response.success) {
+								console.log('✅ Producto añadido al carrito exitosamente');
+								
+								// Mostrar mensaje de éxito
+								alert('✅ Producto personalizado añadido al carrito correctamente');
+								
+								// Cerrar modal
+								$modal[0].style.display = 'none';
+								$modal.hide();
+								$('body').removeClass('wpdm-modal-open');
+								
+								// Actualizar carrito (si existe el fragmento de WooCommerce)
+								if (typeof wc_add_to_cart_params !== 'undefined') {
+									$(document.body).trigger('wc_fragment_refresh');
+								}
+								
+								// Scroll al carrito o mostrar notificación
+								$('html, body').animate({
+									scrollTop: 0
+								}, 500);
+								
+							} else {
+								console.error('❌ Error al añadir al carrito:', response.data);
+								alert('❌ Error: ' + (response.data.message || 'No se pudo añadir al carrito'));
+								$button.prop('disabled', false).text('Añadir al carrito');
+							}
+							
+							console.groupEnd();
+						},
+						error: function(xhr, status, error) {
+							console.error('❌ Error AJAX:', xhr, status, error);
+							alert('❌ Error de conexión. Por favor, intenta de nuevo.');
+							$button.prop('disabled', false).text('Añadir al carrito');
+							console.groupEnd();
+						}
+					});
 				});
 
 				// Sistema de Tabs para Footer
@@ -1169,10 +1984,13 @@ class WPDM_Customization_Frontend {
 					</div>
 				</div>
 				<div class="wpdm-customization-modal-footer" style="display: none;">
-					<!-- Tabs para separar Áreas y Desglose -->
+					<!-- Tabs para separar Áreas, Imágenes y Desglose -->
 					<div class="wpdm-modal-tabs" style="display: flex; background: #e9ecef; margin: -20px 0 20px 0; padding: 8px 20px 0 20px; gap: 8px; border-bottom: 2px solid #dee2e6; border-radius: 0;">
 						<button class="wpdm-modal-tab active" data-tab="areas" style="padding: 14px 30px; cursor: pointer; border: 1px solid #dee2e6; border-bottom: 2px solid #fff; background: #fff; font-size: 1em; font-weight: 700; color: #0464AC; border-radius: 8px 8px 0 0; margin-bottom: -2px; box-shadow: 0 -3px 8px rgba(0,0,0,0.08); transition: all 0.3s ease; letter-spacing: 0.3px;">
 							<?php esc_html_e( 'ÁREAS', 'woo-prices-dynamics-makito' ); ?>
+						</button>
+						<button class="wpdm-modal-tab" data-tab="imagenes" style="padding: 14px 30px; cursor: pointer; border: 1px solid transparent; border-bottom: 2px solid transparent; background: #f8f9fa; font-size: 1em; font-weight: 700; color: #6c757d; border-radius: 8px 8px 0 0; margin-bottom: -2px; transition: all 0.3s ease; letter-spacing: 0.3px;">
+							<?php esc_html_e( 'DISEÑO', 'woo-prices-dynamics-makito' ); ?>
 						</button>
 						<button class="wpdm-modal-tab" data-tab="desglose" style="padding: 14px 30px; cursor: pointer; border: 1px solid transparent; border-bottom: 2px solid transparent; background: #f8f9fa; font-size: 1em; font-weight: 700; color: #6c757d; border-radius: 8px 8px 0 0; margin-bottom: -2px; transition: all 0.3s ease; letter-spacing: 0.3px;">
 							<?php esc_html_e( 'DESGLOSE DE PRECIOS', 'woo-prices-dynamics-makito' ); ?>
@@ -1186,6 +2004,27 @@ class WPDM_Customization_Frontend {
 							<div class="wpdm-simple-total wpdm-grand-total-price" style="font-size: 2.2em; font-weight: 700; color: #0464AC; margin-top: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.05);">0,00 €</div>
 							<div style="font-size: 0.9em; color: #999; margin-top: 10px;">
 								<?php esc_html_e( 'Ver pestaña "Desglose de Precios" para más detalles', 'woo-prices-dynamics-makito' ); ?>
+							</div>
+						</div>
+					</div>
+
+					<!-- Tab Content: Diseño (Imágenes + PANTONE + Observaciones) -->
+					<div class="wpdm-modal-tab-content" id="wpdm-tab-imagenes" style="display: none; max-height: 40vh; overflow-y: auto; padding: 20px 0;">
+						<div class="wpdm-images-upload-container">
+							<div class="wpdm-images-notice" style="background: #e7f3ff; border-left: 4px solid #0464AC; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+								<p style="margin: 0; color: #0464AC; font-weight: 500;">
+									<span style="font-size: 1.2em;">🎨</span> 
+									<?php esc_html_e( 'Completa los detalles de diseño para cada área de marcaje seleccionada.', 'woo-prices-dynamics-makito' ); ?>
+								</p>
+								<p style="margin: 5px 0 0 0; font-size: 0.9em; color: #666;">
+									<?php esc_html_e( 'Sube archivos (JPG, PNG, PDF, EPS, AI, CDR - máx. 5MB), selecciona colores PANTONE si aplica, y añade observaciones.', 'woo-prices-dynamics-makito' ); ?>
+								</p>
+							</div>
+							<div id="wpdm-images-upload-list">
+								<!-- Contenido dinámico: se genera según el modo (global/per-color) -->
+								<div style="text-align: center; padding: 40px; color: #999;">
+									<p><?php esc_html_e( 'Selecciona áreas en la pestaña "Áreas" para completar el diseño.', 'woo-prices-dynamics-makito' ); ?></p>
+								</div>
 							</div>
 						</div>
 					</div>
