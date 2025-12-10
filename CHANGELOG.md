@@ -5,6 +5,52 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.5.8] - 2025-12-09
+
+### ✨ Mejoras en visualización de carrito y personalización
+
+**Mejoras principales:**
+
+#### 🖼️ Imágenes asociadas correctamente por variación
+- ✅ Las imágenes se asocian correctamente a cada variación (talla/color)
+- ✅ En modo global, las imágenes temporales se copian a todas las variaciones
+- ✅ Logs detallados para rastrear el proceso de subida y asociación
+- ✅ Validación mejorada de `area_index` (incluye índice 0)
+
+#### 🎨 Visualización agrupada siempre visible
+- ✅ La visualización agrupada se muestra para TODOS los productos variables
+- ✅ Funciona tanto para productos personalizados como no personalizados
+- ✅ Misma estética consistente para todos los productos
+- ✅ Agrupación mejorada con múltiples estrategias de búsqueda
+
+#### 💰 Precio de personalización por producto
+- ✅ Cada producto muestra su propio precio de personalización
+- ✅ Los fees de personalización se suman correctamente en los totales
+- ✅ Un solo "Personalización GLOBAL" en totales con la suma de todas las personalizaciones
+- ✅ Búsqueda mejorada del precio desde múltiples fuentes (aria-label, HTML, AJAX)
+
+#### 🎯 Modo "per-color" (personalización por variación)
+- ✅ Cada variación muestra su precio de personalización individual en la tarjeta
+- ✅ Total de personalización calculado correctamente (suma de todas las variaciones)
+- ✅ Detalles completos de TODAS las variaciones al hacer clic en "Ver detalles"
+- ✅ Cada variación muestra su encabezado con nombre limpio
+
+#### 🧹 Limpieza de nombres de variación
+- ✅ Eliminación de enlaces repetidos "Ver archivo →" del nombre
+- ✅ Extracción inteligente del nombre antes de los enlaces
+- ✅ Nombres limpios en tarjetas y encabezados de detalles
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`:
+  - Mejoras en asociación de imágenes por variación
+  - Visualización agrupada para todos los productos
+  - Detección de modo (global vs per-color)
+  - Limpieza de nombres de variación
+  - Cálculo correcto de precios de personalización
+- `woo-prices-dynamics-makito.php` (v3.5.8)
+
+---
+
 ## [3.4.3] - 2025-12-04
 
 ### 🐛 Fix - Detalles no visibles aunque estén en el DOM
