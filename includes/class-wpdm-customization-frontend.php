@@ -1563,8 +1563,16 @@ class WPDM_Customization_Frontend {
 					formData.set('customization_data', JSON.stringify(customizationData));
 					
 					// Añadir archivos de imagen CORRECTAMENTE
+					// IMPORTANTE: Ordenar por areaIndex para mantener el orden correcto
 					var fileIndex = 0;
-					Object.keys(designData).forEach(function(key) {
+					var sortedKeys = Object.keys(designData).sort(function(a, b) {
+						var areaIndexA = designData[a].areaIndex || 0;
+						var areaIndexB = designData[b].areaIndex || 0;
+						// Ordenar por areaIndex ascendente
+						return areaIndexA - areaIndexB;
+					});
+					
+					sortedKeys.forEach(function(key) {
 						var data = designData[key];
 						
 						// Añadir imagen si existe
@@ -1574,6 +1582,14 @@ class WPDM_Customization_Frontend {
 							formData.append('images_meta[' + fileIndex + '][area_id]', data.areaId);
 							formData.append('images_meta[' + fileIndex + '][area_index]', data.areaIndex);
 							formData.append('images_meta[' + fileIndex + '][variation_id]', data.variationId || '');
+							
+							console.log('[WPDM] Enviando imagen para área:', {
+								fileIndex: fileIndex,
+								areaIndex: data.areaIndex,
+								areaId: data.areaId,
+								filename: data.image.name || 'N/A'
+							});
+							
 							fileIndex++;
 						}
 					});

@@ -719,11 +719,24 @@ class WPDM_Customization {
 		// Procesar subida de imágenes
 		$uploaded_images = array();
 		
-		if ( isset( $_FILES['images'] ) && ! empty( $_FILES['images']['name'] ) ) {
-			WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Procesando archivos recibidos', array(
-				'files_count' => is_array( $_FILES['images']['name'] ) ? count( $_FILES['images']['name'] ) : 1,
-				'post_meta_keys' => array_keys( $_POST )
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_add_customized_to_cart', '🔍 VERIFICANDO ARCHIVOS RECIBIDOS', array(
+				'has_files' => isset( $_FILES['images'] ),
+				'files_not_empty' => isset( $_FILES['images'] ) && ! empty( $_FILES['images']['name'] ),
+				'files_structure' => isset( $_FILES['images'] ) ? array_keys( $_FILES['images'] ) : array(),
+				'files_name_count' => isset( $_FILES['images']['name'] ) ? ( is_array( $_FILES['images']['name'] ) ? count( $_FILES['images']['name'] ) : 1 ) : 0,
+				'post_keys' => array_keys( $_POST ),
+				'post_keys_images_meta' => array_filter( array_keys( $_POST ), function( $key ) { return strpos( $key, 'images_meta' ) !== false; } )
 			) );
+		}
+		
+		if ( isset( $_FILES['images'] ) && ! empty( $_FILES['images']['name'] ) ) {
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ ARCHIVOS DETECTADOS, PROCESANDO...', array(
+					'files_count' => is_array( $_FILES['images']['name'] ) ? count( $_FILES['images']['name'] ) : 1,
+					'post_meta_keys' => array_keys( $_POST )
+				) );
+			}
 			
 			$files = $_FILES['images'];
 			
@@ -747,34 +760,113 @@ class WPDM_Customization {
 					);
 					
 					// Obtener metadata de este archivo
-					$meta_key = 'images_meta[' . $i . ']';
-					$area_id = isset( $_POST[ $meta_key . '[area_id]' ] ) ? absint( $_POST[ $meta_key . '[area_id]' ] ) : 0;
-					$area_index = isset( $_POST[ $meta_key . '[area_index]' ] ) ? absint( $_POST[ $meta_key . '[area_index]' ] ) : 0;
-					$variation_id = isset( $_POST[ $meta_key . '[variation_id]' ] ) ? absint( $_POST[ $meta_key . '[variation_id]' ] ) : 0;
+					// El frontend envía: images_meta[0][area_id], images_meta[0][area_index], etc.
+					$area_id = isset( $_POST['images_meta'][ $i ]['area_id'] ) ? absint( $_POST['images_meta'][ $i ]['area_id'] ) : 0;
+					$area_index = isset( $_POST['images_meta'][ $i ]['area_index'] ) ? absint( $_POST['images_meta'][ $i ]['area_index'] ) : 0;
+					$variation_id = isset( $_POST['images_meta'][ $i ]['variation_id'] ) ? absint( $_POST['images_meta'][ $i ]['variation_id'] ) : 0;
 					
-					WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Procesando archivo individual', array(
-						'index' => $i,
-						'filename' => $single_file['name'],
-						'area_id' => $area_id,
-						'area_index' => $area_index,
-						'variation_id' => $variation_id
-					) );
+					// Fallback: intentar con formato antiguo si no se encuentra
+					if ( $area_index === 0 && isset( $_POST[ 'images_meta[' . $i . '][area_index]' ] ) ) {
+						$area_index = absint( $_POST[ 'images_meta[' . $i . '][area_index]' ] );
+						$area_id = isset( $_POST[ 'images_meta[' . $i . '][area_id]' ] ) ? absint( $_POST[ 'images_meta[' . $i . '][area_id]' ] ) : 0;
+						$variation_id = isset( $_POST[ 'images_meta[' . $i . '][variation_id]' ] ) ? absint( $_POST[ 'images_meta[' . $i . '][variation_id]' ] ) : 0;
+					}
+					
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::info( 'ajax_add_customized_to_cart', '📋 METADATOS DEL ARCHIVO', array(
+							'index' => $i,
+							'filename' => $single_file['name'],
+							'area_id' => $area_id,
+							'area_index' => $area_index,
+							'variation_id' => $variation_id,
+							'post_images_meta_structure' => isset( $_POST['images_meta'] ) ? ( is_array( $_POST['images_meta'] ) ? array_keys( $_POST['images_meta'] ) : 'NO ES ARRAY' ) : 'NO EXISTE',
+							'post_images_meta_full' => isset( $_POST['images_meta'][ $i ] ) ? $_POST['images_meta'][ $i ] : 'NO EXISTE'
+						) );
+					}
+					
+					// CRÍTICO: area_index puede ser 0 (primera área), así que solo validamos que sea numérico
+					if ( ! is_numeric( $area_index ) || $area_index < 0 ) {
+						if ( class_exists( 'WPDM_Logger' ) ) {
+							WPDM_Logger::warning( 'ajax_add_customized_to_cart', '⚠️ area_index inválido para archivo', array(
+								'index' => $i,
+								'filename' => $single_file['name'],
+								'area_index' => $area_index,
+								'area_index_type' => gettype( $area_index )
+							) );
+						}
+						continue;
+					}
 					
 					// Subir archivo
-					$uploaded = self::upload_single_customization_image( $single_file );
-					if ( $uploaded && ! is_wp_error( $uploaded ) ) {
-						$storage_key = $variation_id > 0 ? "area-{$area_index}-var-{$variation_id}" : "area-{$area_index}";
-						$uploaded_images[ $storage_key ] = $uploaded;
-						
-						WPDM_Logger::info( 'ajax_add_customized_to_cart', 'Imagen asociada a área', array(
-							'storage_key' => $storage_key,
-							'filename' => $uploaded['filename']
-						) );
-					} else {
-						WPDM_Logger::warning( 'ajax_add_customized_to_cart', 'Error al subir archivo', array(
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::info( 'ajax_add_customized_to_cart', '📤 SUBIENDO ARCHIVO', array(
+							'file_index' => $i,
 							'filename' => $single_file['name'],
-							'error' => is_wp_error( $uploaded ) ? $uploaded->get_error_message() : 'Unknown'
+							'area_index' => $area_index,
+							'variation_id' => $variation_id,
+							'area_id' => $area_id
 						) );
+					}
+					
+					$uploaded = self::upload_single_customization_image( $single_file );
+					
+					if ( $uploaded && ! is_wp_error( $uploaded ) ) {
+						if ( class_exists( 'WPDM_Logger' ) ) {
+							WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ ARCHIVO SUBIDO EXITOSAMENTE', array(
+								'file_index' => $i,
+								'filename' => $uploaded['filename'] ?? 'N/A',
+								'url' => $uploaded['url'] ?? 'N/A',
+								'area_index' => $area_index,
+								'variation_id' => $variation_id
+							) );
+						}
+						
+						// CRÍTICO: SIEMPRE asociar por variación (area_index + variation_id)
+						// En modo global, si no hay variation_id en los metadatos, se copiará a todas las variaciones después
+						$mode = isset( $customization_data['mode'] ) ? $customization_data['mode'] : 'global';
+						
+						if ( $variation_id > 0 ) {
+							// Tenemos variation_id: asociar directamente a esta variación
+							$storage_key = "area-{$area_index}-var-{$variation_id}";
+							$uploaded_images[ $storage_key ] = $uploaded;
+							
+							if ( class_exists( 'WPDM_Logger' ) ) {
+								WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ Imagen asociada a variación específica', array(
+									'storage_key' => $storage_key,
+									'filename' => $uploaded['filename'] ?? 'N/A',
+									'url' => $uploaded['url'] ?? 'N/A',
+									'area_index' => $area_index,
+									'variation_id' => $variation_id,
+									'file_index' => $i
+								) );
+							}
+						} else {
+							// No hay variation_id: guardar temporalmente para copiar a todas las variaciones después
+							// Usar un storage_key temporal que luego se copiará
+							$temp_key = "area-{$area_index}-temp";
+							$uploaded_images[ $temp_key ] = $uploaded;
+							
+							if ( class_exists( 'WPDM_Logger' ) ) {
+								WPDM_Logger::info( 'ajax_add_customized_to_cart', '⏳ Imagen guardada temporalmente (sin variation_id), se copiará a todas las variaciones', array(
+									'temp_key' => $temp_key,
+									'filename' => $uploaded['filename'] ?? 'N/A',
+									'url' => $uploaded['url'] ?? 'N/A',
+									'area_index' => $area_index,
+									'file_index' => $i,
+									'mode' => $mode
+								) );
+							}
+						}
+					} else {
+						if ( class_exists( 'WPDM_Logger' ) ) {
+							WPDM_Logger::error( 'ajax_add_customized_to_cart', '❌ ERROR AL SUBIR ARCHIVO', array(
+								'file_index' => $i,
+								'filename' => $single_file['name'],
+								'error' => is_wp_error( $uploaded ) ? $uploaded->get_error_message() : 'Unknown error',
+								'area_index' => $area_index,
+								'variation_id' => $variation_id
+							) );
+						}
 					}
 				}
 			} else {
@@ -785,34 +877,32 @@ class WPDM_Customization {
 						// En caso de archivo único, intentar obtener metadata
 						$area_index = isset( $_POST['images_meta'][0]['area_index'] ) ? absint( $_POST['images_meta'][0]['area_index'] ) : 0;
 						$variation_id = isset( $_POST['images_meta'][0]['variation_id'] ) ? absint( $_POST['images_meta'][0]['variation_id'] ) : 0;
-						$storage_key = $variation_id > 0 ? "area-{$area_index}-var-{$variation_id}" : "area-{$area_index}";
-						$uploaded_images[ $storage_key ] = $uploaded;
+						
+						// CRÍTICO: SIEMPRE asociar por variación (area_index + variation_id)
+						if ( $variation_id > 0 ) {
+							// Tenemos variation_id: asociar directamente
+							$storage_key = "area-{$area_index}-var-{$variation_id}";
+							$uploaded_images[ $storage_key ] = $uploaded;
+						} else {
+							// No hay variation_id: guardar temporalmente para copiar después
+							$temp_key = "area-{$area_index}-temp";
+							$uploaded_images[ $temp_key ] = $uploaded;
+						}
 					}
 				}
 			}
 		}
 
-		// Añadir imágenes subidas a customization_data
-		foreach ( $customization_data['areas'] as &$area ) {
-			$area_index = isset( $area['area_index'] ) ? $area['area_index'] : 0;
-			$variation_id = isset( $area['variation_id'] ) ? $area['variation_id'] : 0;
-			
-			$storage_key = $variation_id > 0 ? "area-{$area_index}-var-{$variation_id}" : "area-{$area_index}";
-			
-			if ( isset( $uploaded_images[ $storage_key ] ) ) {
-				$area['image_url'] = $uploaded_images[ $storage_key ]['url'];
-				$area['image_filename'] = $uploaded_images[ $storage_key ]['filename'];
-			}
+		// NOTA: Las imágenes ahora se asocian directamente a cada variación cuando se añaden al carrito
+		// Esta sección ya no es necesaria porque la asociación se hace por variación más abajo
+		// Mantenemos solo el log de imágenes subidas
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_add_customized_to_cart', '📊 RESUMEN DE IMÁGENES SUBIDAS', array(
+				'images_uploaded' => count( $uploaded_images ),
+				'storage_keys' => array_keys( $uploaded_images ),
+				'total_areas' => count( $customization_data['areas'] )
+			) );
 		}
-		unset( $area );
-		
-		WPDM_Logger::info( 'ajax_add_customized_to_cart', 'Imágenes procesadas y asociadas', array(
-			'images_uploaded' => count( $uploaded_images ),
-			'storage_keys' => array_keys( $uploaded_images ),
-			'areas_with_images' => array_filter( array_map( function( $area ) {
-				return isset( $area['image_url'] ) ? $area['area_position'] : null;
-			}, $customization_data['areas'] ) )
-		) );
 
 		// CRÍTICO: En modo "global", calcular precio UNA VEZ para todas las variaciones
 		$total_quantity_all_variations = 0;
@@ -842,6 +932,91 @@ class WPDM_Customization {
 			) );
 		}
 
+		// CRÍTICO: Copiar imágenes temporales (sin variation_id) a todas las variaciones
+		// Esto asegura que cada variación tenga su propia copia de las imágenes
+		// IMPORTANTE: Hacer una copia del array antes de iterar para evitar problemas al modificar durante la iteración
+		$temp_images_to_copy = array();
+		foreach ( $uploaded_images as $storage_key => $image_data ) {
+			if ( strpos( $storage_key, '-temp' ) !== false ) {
+				// Es una imagen temporal: extraer area_index
+				if ( preg_match( '/^area-(\d+)-temp$/', $storage_key, $matches ) ) {
+					$temp_area_index = absint( $matches[1] );
+					$temp_images_to_copy[ $storage_key ] = array(
+						'area_index' => $temp_area_index,
+						'image_data' => $image_data
+					);
+				}
+			}
+		}
+		
+		// Ahora copiar las imágenes temporales a todas las variaciones
+		WPDM_Logger::info( 'ajax_add_customized_to_cart', '🔄 COPIANDO IMÁGENES TEMPORALES A VARIACIONES', array(
+			'temp_images_encontradas' => count( $temp_images_to_copy ),
+			'total_variaciones' => count( $variations ),
+			'temp_images_detalle' => array_map( function( $temp ) {
+				return array(
+					'area_index' => $temp['area_index'],
+					'filename' => $temp['image_data']['filename'] ?? 'N/A',
+					'url' => $temp['image_data']['url'] ?? 'N/A'
+				);
+			}, $temp_images_to_copy )
+		) );
+		
+		foreach ( $temp_images_to_copy as $temp_key => $temp_data ) {
+			$temp_area_index = $temp_data['area_index'];
+			$image_data = $temp_data['image_data'];
+			
+			WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Copiando imagen temporal', array(
+				'temp_key' => $temp_key,
+				'area_index' => $temp_area_index,
+				'filename' => $image_data['filename'] ?? 'N/A',
+				'url' => $image_data['url'] ?? 'N/A'
+			) );
+			
+			// Copiar a todas las variaciones
+			$copied_count = 0;
+			foreach ( $variations as $variation_data ) {
+				$variation_id = absint( $variation_data['variation_id'] );
+				if ( $variation_id > 0 ) {
+					$new_storage_key = "area-{$temp_area_index}-var-{$variation_id}";
+					// Solo copiar si no existe ya
+					if ( ! isset( $uploaded_images[ $new_storage_key ] ) ) {
+						$uploaded_images[ $new_storage_key ] = $image_data;
+						$copied_count++;
+						
+						WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ Imagen temporal copiada a variación', array(
+							'temp_key' => $temp_key,
+							'new_storage_key' => $new_storage_key,
+							'variation_id' => $variation_id,
+							'area_index' => $temp_area_index,
+							'filename' => $image_data['filename'] ?? 'N/A',
+							'url' => $image_data['url'] ?? 'N/A'
+						) );
+					} else {
+						WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Imagen ya existe para esta variación, saltando', array(
+							'new_storage_key' => $new_storage_key,
+							'variation_id' => $variation_id
+						) );
+					}
+				}
+			}
+			
+			WPDM_Logger::info( 'ajax_add_customized_to_cart', 'Imagen temporal procesada', array(
+				'temp_key' => $temp_key,
+				'area_index' => $temp_area_index,
+				'copied_to_variations' => $copied_count
+			) );
+			
+			// Eliminar la imagen temporal
+			unset( $uploaded_images[ $temp_key ] );
+		}
+		
+		WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ IMÁGENES TEMPORALES PROCESADAS', array(
+			'temp_images_found' => count( $temp_images_to_copy ),
+			'total_images_after_copy' => count( $uploaded_images ),
+			'storage_keys_finales' => array_keys( $uploaded_images )
+		) );
+		
 		// Añadir cada variación al carrito
 		$added_items = array();
 		$total_customization_price = 0;
@@ -860,7 +1035,7 @@ class WPDM_Customization {
 				continue;
 			}
 
-			// Filtrar áreas de personalización para esta variación
+			// Filtrar áreas de personalización para esta variación y asociar imágenes
 			$variation_areas = array();
 			if ( $mode === 'per-color' ) {
 				// Solo áreas específicas de esta variación
@@ -870,9 +1045,122 @@ class WPDM_Customization {
 					}
 				}
 			} else {
-				// Modo global: todas las áreas
-				$variation_areas = $customization_data['areas'];
+				// Modo global: todas las áreas, pero asociar imágenes por variación
+				foreach ( $customization_data['areas'] as $area ) {
+					$area_copy = $area;
+					// Asegurar que el variation_id esté en el área
+					$area_copy['variation_id'] = $variation_id;
+					$variation_areas[] = $area_copy;
+				}
 			}
+			
+			// CRÍTICO: Asociar imágenes a las áreas de esta variación
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::info( 'ajax_add_customized_to_cart', '🔍 ASOCIANDO IMÁGENES A VARIACIÓN', array(
+					'variation_id' => $variation_id,
+					'total_areas' => count( $variation_areas ),
+					'total_images_available' => count( $uploaded_images ),
+					'storage_keys_available' => array_keys( $uploaded_images )
+				) );
+			}
+			
+			foreach ( $variation_areas as &$area ) {
+				$area_index = isset( $area['area_index'] ) ? absint( $area['area_index'] ) : 0;
+				$area_position = $area['area_position'] ?? 'N/A';
+				
+				if ( class_exists( 'WPDM_Logger' ) ) {
+					WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Procesando área para asociar imagen', array(
+						'variation_id' => $variation_id,
+						'area_index' => $area_index,
+						'area_position' => $area_position,
+						'area_has_image_url' => isset( $area['image_url'] ),
+						'area_current_image_url' => $area['image_url'] ?? 'NO EXISTE'
+					) );
+				}
+				
+				// CRÍTICO: area_index puede ser 0 (primera área), así que verificamos que sea numérico y >= 0
+				if ( is_numeric( $area_index ) && $area_index >= 0 ) {
+					$storage_key = "area-{$area_index}-var-{$variation_id}";
+					
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Buscando imagen con storage_key', array(
+							'storage_key' => $storage_key,
+							'exists_in_uploaded_images' => isset( $uploaded_images[ $storage_key ] ),
+							'image_data' => isset( $uploaded_images[ $storage_key ] ) ? $uploaded_images[ $storage_key ] : 'NO ENCONTRADA',
+							'todas_las_claves' => array_keys( $uploaded_images )
+						) );
+					}
+					
+					if ( isset( $uploaded_images[ $storage_key ] ) ) {
+						$area['image_url'] = $uploaded_images[ $storage_key ]['url'];
+						$area['image_filename'] = $uploaded_images[ $storage_key ]['filename'];
+						
+						if ( class_exists( 'WPDM_Logger' ) ) {
+							WPDM_Logger::info( 'ajax_add_customized_to_cart', '✅ IMAGEN ASOCIADA EXITOSAMENTE', array(
+								'variation_id' => $variation_id,
+								'area_index' => $area_index,
+								'area_position' => $area_position,
+								'storage_key' => $storage_key,
+								'image_url' => $area['image_url'],
+								'image_filename' => $area['image_filename']
+							) );
+						}
+					} else {
+						// Intentar también con area_index sin el guion si no se encontró
+						// Esto puede ayudar si hay algún problema con el formato del storage_key
+						$storage_key_alt = "area-{$area_index}-var-{$variation_id}";
+						
+						if ( class_exists( 'WPDM_Logger' ) ) {
+							WPDM_Logger::warning( 'ajax_add_customized_to_cart', '❌ NO SE ENCONTRÓ IMAGEN PARA ÁREA', array(
+								'variation_id' => $variation_id,
+								'area_index' => $area_index,
+								'area_position' => $area_position,
+								'storage_key_buscado' => $storage_key,
+								'todas_las_claves_disponibles' => array_keys( $uploaded_images ),
+								'area_data_keys' => array_keys( $area )
+							) );
+						}
+					}
+				} else {
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::warning( 'ajax_add_customized_to_cart', '⚠️ area_index inválido en área', array(
+							'variation_id' => $variation_id,
+							'area_index' => $area_index,
+							'area_index_type' => gettype( $area_index ),
+							'area_position' => $area_position,
+							'area_data' => $area
+						) );
+					}
+				}
+			}
+			unset( $area );
+			
+			// Log final de áreas con imágenes
+			$areas_with_images = array();
+			$areas_without_images = array();
+			foreach ( $variation_areas as $area ) {
+				if ( isset( $area['image_url'] ) && ! empty( $area['image_url'] ) ) {
+					$areas_with_images[] = array(
+						'area_index' => $area['area_index'] ?? 'N/A',
+						'area_position' => $area['area_position'] ?? 'N/A',
+						'image_url' => $area['image_url']
+					);
+				} else {
+					$areas_without_images[] = array(
+						'area_index' => $area['area_index'] ?? 'N/A',
+						'area_position' => $area['area_position'] ?? 'N/A'
+					);
+				}
+			}
+			
+			WPDM_Logger::info( 'ajax_add_customized_to_cart', '📊 RESUMEN DE IMÁGENES POR VARIACIÓN', array(
+				'variation_id' => $variation_id,
+				'total_areas' => count( $variation_areas ),
+				'areas_con_imagen' => count( $areas_with_images ),
+				'areas_sin_imagen' => count( $areas_without_images ),
+				'areas_con_imagen_detalle' => $areas_with_images,
+				'areas_sin_imagen_detalle' => $areas_without_images
+			) );
 
 			if ( empty( $variation_areas ) ) {
 				continue;
@@ -895,13 +1183,39 @@ class WPDM_Customization {
 				$areas_detail = isset( $price_result['areas'] ) ? $price_result['areas'] : array();
 			}
 			
-			WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Precio para variación', array(
-				'variation_id' => $variation_id,
-				'quantity' => $quantity,
-				'mode' => $mode,
-				'customization_price' => $customization_price,
-				'is_global_price' => ( $mode === 'global' && $global_price_result !== null )
-			) );
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::debug( 'ajax_add_customized_to_cart', 'Precio para variación', array(
+					'variation_id' => $variation_id,
+					'quantity' => $quantity,
+					'mode' => $mode,
+					'customization_price' => $customization_price,
+					'is_global_price' => ( $mode === 'global' && $global_price_result !== null )
+				) );
+			}
+			
+			// Log final de áreas antes de guardar en carrito
+			$final_areas_log = array();
+			foreach ( $variation_areas as $area ) {
+				$final_areas_log[] = array(
+					'area_index' => $area['area_index'] ?? 'N/A',
+					'area_position' => $area['area_position'] ?? 'N/A',
+					'has_image_url' => isset( $area['image_url'] ) && ! empty( $area['image_url'] ),
+					'image_url' => $area['image_url'] ?? 'NO EXISTE',
+					'image_filename' => $area['image_filename'] ?? 'NO EXISTE',
+					'variation_id_en_area' => $area['variation_id'] ?? 'NO EXISTE'
+				);
+			}
+			
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::info( 'ajax_add_customized_to_cart', '💾 GUARDANDO VARIACIÓN EN CARRITO', array(
+					'variation_id' => $variation_id,
+					'quantity' => $quantity,
+					'total_areas' => count( $variation_areas ),
+					'areas_con_imagen' => count( array_filter( $final_areas_log, function( $a ) { return $a['has_image_url']; } ) ),
+					'areas_sin_imagen' => count( array_filter( $final_areas_log, function( $a ) { return ! $a['has_image_url']; } ) ),
+					'areas_detalle' => $final_areas_log
+				) );
+			}
 
 			// Preparar datos para el carrito
 			$cart_item_data = array(
@@ -1366,13 +1680,58 @@ class WPDM_Customization {
 	 */
 	private static function render_customization_details( $customization ) {
 		$html = '';
+		
+		// Validar que customization sea un array
+		if ( ! is_array( $customization ) ) {
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::error( 'render_customization_details', '❌ ERROR: customization no es un array', array(
+					'customization_type' => gettype( $customization ),
+					'customization_value' => $customization
+				) );
+			}
+			return '<p style="color: #d63638;">Error: Datos de personalización inválidos</p>';
+		}
+		
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'render_customization_details', '🎨 INICIANDO RENDERIZADO DE DETALLES', array(
+				'customization_keys' => is_array( $customization ) ? array_keys( $customization ) : array(),
+				'has_areas' => ! empty( $customization['areas'] ) && is_array( $customization['areas'] ),
+				'total_areas' => ! empty( $customization['areas'] ) && is_array( $customization['areas'] ) ? count( $customization['areas'] ) : 0
+			) );
+		}
 
-		if ( ! empty( $customization['areas'] ) ) {
-			foreach ( $customization['areas'] as $area ) {
+		if ( ! empty( $customization['areas'] ) && is_array( $customization['areas'] ) ) {
+			foreach ( $customization['areas'] as $area_index => $area ) {
+				// Validar que area sea un array
+				if ( ! is_array( $area ) ) {
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::warning( 'render_customization_details', '⚠️ Área no es un array, saltando', array(
+							'area_index' => $area_index,
+							'area_type' => gettype( $area )
+						) );
+					}
+					continue;
+				}
+				
+				$area_position = isset( $area['area_position'] ) ? $area['area_position'] : 'Área ' . ( is_numeric( $area_index ) ? ( $area_index + 1 ) : '' );
+				$has_image_url = isset( $area['image_url'] ) && ! empty( $area['image_url'] );
+				$image_url = isset( $area['image_url'] ) ? $area['image_url'] : 'NO EXISTE';
+				
+				if ( class_exists( 'WPDM_Logger' ) ) {
+					WPDM_Logger::debug( 'render_customization_details', 'Procesando área para renderizar', array(
+						'area_index' => $area_index,
+						'area_position' => $area_position,
+						'has_image_url' => $has_image_url,
+						'image_url' => $image_url,
+						'image_filename' => isset( $area['image_filename'] ) ? $area['image_filename'] : 'NO EXISTE',
+						'area_keys' => is_array( $area ) ? array_keys( $area ) : array()
+					) );
+				}
+				
 				$html .= '<div style="margin-bottom: 12px; padding: 10px; background: #fff; border-radius: 4px; border-left: 3px solid #0464AC;">';
 				
 				// Nombre del área
-				$html .= '<div style="font-weight: 600; color: #0464AC; margin-bottom: 8px;">📐 ' . esc_html( $area['area_position'] ?? 'Área' ) . '</div>';
+				$html .= '<div style="font-weight: 600; color: #0464AC; margin-bottom: 8px;">📐 ' . esc_html( $area_position ) . '</div>';
 				
 				$html .= '<table style="width: 100%; font-size: 0.85em;">';
 				$html .= '<tbody>';
@@ -1394,8 +1753,24 @@ class WPDM_Customization {
 				}
 				
 				// Imagen
-				if ( ! empty( $area['image_url'] ) ) {
-					$html .= '<tr><td style="color: #666; padding: 3px 0;">📸 Imagen:</td><td style="color: #333; padding: 3px 0;"><a href="' . esc_url( $area['image_url'] ) . '" target="_blank" style="color: #0464AC; text-decoration: none;">Ver archivo →</a></td></tr>';
+				if ( $has_image_url ) {
+					$html .= '<tr><td style="color: #666; padding: 3px 0;">📸 Imagen:</td><td style="color: #333; padding: 3px 0;"><a href="' . esc_url( $image_url ) . '" target="_blank" style="color: #0464AC; text-decoration: none;">Ver archivo →</a></td></tr>';
+					
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::info( 'render_customization_details', '✅ IMAGEN AÑADIDA AL HTML', array(
+							'area_index' => $area_index,
+							'area_position' => $area_position,
+							'image_url' => $image_url
+						) );
+					}
+				} else {
+					if ( class_exists( 'WPDM_Logger' ) ) {
+						WPDM_Logger::warning( 'render_customization_details', '❌ NO HAY IMAGEN PARA ÁREA', array(
+							'area_index' => $area_index,
+							'area_position' => $area_position,
+							'area_data_completo' => $area
+						) );
+					}
 				}
 				
 				// Observaciones
@@ -1406,6 +1781,19 @@ class WPDM_Customization {
 				$html .= '</tbody></table>';
 				$html .= '</div>';
 			}
+		} else {
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::warning( 'render_customization_details', '⚠️ NO HAY ÁREAS EN CUSTOMIZATION', array(
+					'customization' => $customization
+				) );
+			}
+		}
+		
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'render_customization_details', '✅ RENDERIZADO COMPLETADO', array(
+				'html_length' => strlen( $html ),
+				'html_preview' => substr( $html, 0, 200 ) . '...'
+			) );
 		}
 
 		return $html;
@@ -1415,6 +1803,13 @@ class WPDM_Customization {
 	 * AJAX: Obtener detalles de personalización de un item del carrito
 	 */
 	public static function ajax_get_cart_item_customization() {
+		// Verificar que WPDM_Logger existe antes de usarlo
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_get_cart_item_customization', '📥 SOLICITUD DE DETALLES DE PERSONALIZACIÓN', array(
+				'cart_item_key' => isset( $_POST['cart_item_key'] ) ? sanitize_text_field( $_POST['cart_item_key'] ) : 'NO PROPORCIONADO'
+			) );
+		}
+		
 		if ( ! WC()->cart ) {
 			wp_send_json_error( array( 'message' => 'Carrito no disponible' ) );
 		}
@@ -1427,12 +1822,83 @@ class WPDM_Customization {
 		
 		$cart_item = WC()->cart->get_cart_item( $cart_item_key );
 		
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_get_cart_item_customization', '🔍 CART ITEM RECUPERADO', array(
+				'cart_item_key' => $cart_item_key,
+				'cart_item_exists' => ! empty( $cart_item ),
+				'has_customization' => ! empty( $cart_item ) && isset( $cart_item['wpdm_customization'] ) && ! empty( $cart_item['wpdm_customization'] ),
+				'cart_item_keys' => ! empty( $cart_item ) ? array_keys( $cart_item ) : array()
+			) );
+		}
+		
 		if ( ! $cart_item || empty( $cart_item['wpdm_customization'] ) ) {
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::warning( 'ajax_get_cart_item_customization', '❌ CART ITEM NO ENCONTRADO O SIN PERSONALIZACIÓN', array(
+					'cart_item_key' => $cart_item_key,
+					'cart_item_is_array' => is_array( $cart_item ),
+					'cart_item_has_customization_key' => ! empty( $cart_item ) && isset( $cart_item['wpdm_customization'] )
+				) );
+			}
 			wp_send_json_error( array( 'message' => 'Item no encontrado o sin personalización' ) );
 		}
 		
 		$customization = $cart_item['wpdm_customization'];
+		
+		// Validar que customization sea un array
+		if ( ! is_array( $customization ) ) {
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::error( 'ajax_get_cart_item_customization', '❌ ERROR: customization no es un array', array(
+					'cart_item_key' => $cart_item_key,
+					'customization_type' => gettype( $customization ),
+					'customization_value' => $customization
+				) );
+			}
+			wp_send_json_error( array( 'message' => 'Datos de personalización inválidos' ) );
+		}
+		
+		// Log detallado de las áreas y sus imágenes
+		$areas_log = array();
+		if ( ! empty( $customization['areas'] ) && is_array( $customization['areas'] ) ) {
+			foreach ( $customization['areas'] as $idx => $area ) {
+				if ( is_array( $area ) ) {
+					$areas_log[] = array(
+						'area_index' => isset( $area['area_index'] ) ? $area['area_index'] : 'N/A',
+						'area_position' => isset( $area['area_position'] ) ? $area['area_position'] : 'N/A',
+						'has_image_url' => isset( $area['image_url'] ) && ! empty( $area['image_url'] ),
+						'image_url' => isset( $area['image_url'] ) ? $area['image_url'] : 'NO EXISTE',
+						'image_filename' => isset( $area['image_filename'] ) ? $area['image_filename'] : 'NO EXISTE',
+						'variation_id' => isset( $area['variation_id'] ) ? $area['variation_id'] : 'NO EXISTE',
+						'area_keys' => array_keys( $area )
+					);
+				}
+			}
+		}
+		
+		$variation_id_log = isset( $cart_item['variation_id'] ) ? $cart_item['variation_id'] : ( isset( $cart_item['data'] ) && is_a( $cart_item['data'], 'WC_Product_Variation' ) ? $cart_item['data']->get_id() : 'N/A' );
+		
+		$variation_id_log = isset( $cart_item['variation_id'] ) ? $cart_item['variation_id'] : ( isset( $cart_item['data'] ) && is_a( $cart_item['data'], 'WC_Product_Variation' ) ? $cart_item['data']->get_id() : 'N/A' );
+		
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_get_cart_item_customization', '📋 DATOS DE PERSONALIZACIÓN RECUPERADOS', array(
+				'cart_item_key' => $cart_item_key,
+				'variation_id' => $variation_id_log,
+				'total_areas' => ! empty( $customization['areas'] ) && is_array( $customization['areas'] ) ? count( $customization['areas'] ) : 0,
+				'areas_con_imagen' => count( array_filter( $areas_log, function( $a ) { return isset( $a['has_image_url'] ) && $a['has_image_url']; } ) ),
+				'areas_sin_imagen' => count( array_filter( $areas_log, function( $a ) { return isset( $a['has_image_url'] ) && ! $a['has_image_url']; } ) ),
+				'areas_detalle' => $areas_log
+			) );
+		}
+		
 		$details_html = self::render_customization_details( $customization );
+		
+		if ( class_exists( 'WPDM_Logger' ) ) {
+			WPDM_Logger::info( 'ajax_get_cart_item_customization', '✅ DETALLES RENDERIZADOS', array(
+				'cart_item_key' => $cart_item_key,
+				'html_length' => strlen( $details_html ),
+				'html_contains_image' => strpos( $details_html, 'Ver archivo' ) !== false,
+				'html_preview' => substr( $details_html, 0, 300 ) . '...'
+			) );
+		}
 		
 		wp_send_json_success( array(
 			'details' => $details_html,
@@ -1492,7 +1958,12 @@ class WPDM_Customization {
 					}
 					
 					// Usar clases CSS en lugar de estilos inline para mejor control
-					if ($details.hasClass('wpdm-details-visible') || ($details.is(':visible') && $details.css('display') !== 'none')) {
+					var isVisible = $details.hasClass('wpdm-details-visible') || 
+									($details.is(':visible') && $details.css('display') !== 'none' && 
+									 $details.css('visibility') !== 'hidden' && 
+									 $details.css('opacity') !== '0');
+					
+					if (isVisible) {
 						console.log('[WPDM Cart] Ocultando detalles');
 						$details.removeClass('wpdm-details-visible').addClass('wpdm-details-hidden');
 						$button.html('Ver detalles ▼');
@@ -1503,6 +1974,14 @@ class WPDM_Customization {
 						$details.parent().css('overflow', 'visible');
 						$details.closest('.wpdm-product-group-wrapper').css('overflow', 'visible');
 						$details.closest('.wpdm-group-customization').css('overflow', 'visible');
+						// Forzar visibilidad con estilos inline también
+						$details.css({
+							'display': 'block',
+							'visibility': 'visible',
+							'opacity': '1',
+							'height': 'auto',
+							'overflow': 'visible'
+						});
 						$button.html('Ocultar detalles ▲');
 					}
 				});
@@ -1549,33 +2028,106 @@ class WPDM_Customization {
 				console.log('[WPDM Cart] Toggles listos. Botones:', buttonsFound, 'Detalles:', detailsFound);
 			}
 			
-			// Reorganizar visualmente los items del carrito en modo global
+			// Reorganizar visualmente los items del carrito (SIEMPRE para productos variables)
 			function reorganizeCartItems() {
+				console.log('[WPDM Cart] Iniciando reorganización del carrito...');
+				
 				// Limpiar grupos anteriores
 				$('.wpdm-product-group-container').remove();
-				$('.wpdm-customized-global').show();
+				// Mostrar todos los items del carrito (no solo personalizados)
+				$('tbody tr.cart_item, .cart_item').show();
+				
+				// Marcar que estamos reorganizando para evitar bucles
+				$('.cart_item').data('wpdm-reorganized', false);
 				
 				// Agrupar items por producto
+				// Buscar TODOS los productos variables, no solo los personalizados
 				var productGroups = {};
 				
-				$('.wpdm-customized-global').each(function() {
-					var $item = $(this);
-					var productGroup = $item.attr('class').match(/wpdm-product-group-(\d+)/);
+				// ESTRATEGIA 1: Buscar TODOS los items del carrito y agruparlos por producto padre
+				$('tbody tr.cart_item, .cart_item').each(function() {
+					var $row = $(this);
 					
-					if (productGroup && productGroup[1]) {
-						var productId = productGroup[1];
-						
+					// Omitir si ya está reorganizado o es un contenedor de grupo
+					if ($row.hasClass('wpdm-product-group-container') || $row.data('wpdm-reorganized') === true) {
+						return;
+					}
+					
+					var productId = null;
+					
+					// PRIORIDAD 1: Buscar la clase wpdm-product-group-{id} (para productos personalizados)
+					var allClasses = $row.attr('class') || '';
+					var match = allClasses.match(/wpdm-product-group-(\d+)/);
+					if (match && match[1]) {
+						productId = match[1];
+					} else {
+						// PRIORIDAD 2: Intentar obtener el product_id del link del producto
+						var $productLink = $row.find('.product-name a').first();
+						if ($productLink.length) {
+							var href = $productLink.attr('href') || '';
+							// Buscar product_id en la URL (puede ser producto padre o variación)
+							var productMatch = href.match(/product[\/=](\d+)/);
+							if (productMatch && productMatch[1]) {
+								var foundProductId = productMatch[1];
+								
+								// Verificar si es una variación buscando data-product_id en el botón de eliminar
+								var $removeLink = $row.find('a[href*="remove_item"]');
+								if ($removeLink.length) {
+									var dataProductId = $removeLink.data('product_id');
+									if (dataProductId && dataProductId != foundProductId) {
+										// Es una variación, usar el data-product_id como product_id padre
+										productId = dataProductId;
+									} else {
+										// Puede ser producto simple o variación sin data attribute
+										// Intentar obtener del nombre del producto (si tiene guión, probablemente es variación)
+										var productName = $productLink.text().trim();
+										if (productName.indexOf(' - ') !== -1 || productName.indexOf(',') !== -1) {
+											// Probablemente es una variación, usar el ID encontrado como parent_id
+											// Para variaciones, necesitamos hacer una petición AJAX o usar el ID del link
+											// Por ahora, agrupamos por el ID encontrado (que puede ser el parent_id)
+											productId = foundProductId;
+										} else {
+											// Producto simple
+											productId = foundProductId;
+										}
+									}
+								} else {
+									// No hay botón de eliminar, usar el ID encontrado
+									productId = foundProductId;
+								}
+							}
+						}
+					}
+					
+					if (productId) {
 						if (!productGroups[productId]) {
 							productGroups[productId] = [];
 						}
 						
-						productGroups[productId].push($item);
+						// Evitar duplicados
+						var alreadyAdded = false;
+						for (var i = 0; i < productGroups[productId].length; i++) {
+							if (productGroups[productId][i][0] === $row[0]) {
+								alreadyAdded = true;
+								break;
+							}
+						}
+						
+						if (!alreadyAdded) {
+							productGroups[productId].push($row);
+							console.log('[WPDM Cart] Item añadido al grupo', productId, '- Total items:', productGroups[productId].length);
+						}
+					} else {
+						console.warn('[WPDM Cart] No se pudo determinar productId para item:', $row);
 					}
 				});
 				
-				// Reorganizar cada grupo
+				console.log('[WPDM Cart] Productos encontrados:', Object.keys(productGroups).length, productGroups);
+				
+				// Reorganizar cada grupo (SIEMPRE mostrar visualización agrupada)
 				$.each(productGroups, function(productId, items) {
-					if (items.length > 1) {
+					// Procesar TODOS los grupos, incluso con 1 item (visualización estrella siempre visible)
+					if (items.length >= 1) {
 						var $firstItem = items[0];
 						var $parentTable = $firstItem.closest('table, tbody');
 						
@@ -1587,26 +2139,41 @@ class WPDM_Customization {
 							productName = match[1].trim();
 						}
 						
-						// Obtener precio de personalización del fee "Personalización GLOBAL"
+						// CRÍTICO: Detectar el modo de personalización (global o per-color)
+						var isGlobalMode = false;
+						var isPerColorMode = false;
+						
+						// Verificar clases del primer item para determinar el modo
+						var $firstItemRow = $firstItem.closest('tr, .cart_item');
+						var firstItemClasses = $firstItemRow.attr('class') || '';
+						
+						if (firstItemClasses.indexOf('wpdm-customized-global') !== -1) {
+							isGlobalMode = true;
+						} else if (firstItemClasses.indexOf('wpdm-customized-per-color') !== -1) {
+							isPerColorMode = true;
+						}
+						
+						console.log('[WPDM Cart] Modo detectado para producto', productId, '- Global:', isGlobalMode, 'Per-color:', isPerColorMode);
+						
+						// Obtener precio de personalización según el modo
 						var customizationPrice = '0,00 €';
+						var totalCustomizationPrice = 0; // Para modo per-color, sumar todas las variaciones
 						
-						// Buscar en los fees del carrito
-						var $cartTotals = $('.cart_totals, .shop_table.shop_table_responsive');
-						var $globalFee = $cartTotals.find('tr, .cart-subtotal, .fee').filter(function() {
-							return $(this).text().indexOf('Personalización GLOBAL') !== -1;
-						});
-						
-						if ($globalFee.length) {
-							var feeText = $globalFee.text();
-							var priceMatch = feeText.match(/([\d,\.]+)\s*€/);
+						// ESTRATEGIA 1: Buscar en el HTML del primer item (que está oculto pero tiene los datos)
+						var $removeLink = $firstItemRow.find('a[href*="remove_item"]');
+						if ($removeLink.length) {
+							var ariaLabel = $removeLink.attr('aria-label') || '';
+							// El aria-label puede contener "✓ Sí | 150,00 €" o similar
+							var priceMatch = ariaLabel.match(/([\d,\.]+)\s*€/);
 							if (priceMatch) {
 								customizationPrice = priceMatch[0];
+								console.log('[WPDM Cart] Precio encontrado en aria-label:', customizationPrice);
 							}
 						}
 						
-						// Si no se encontró en fees, intentar del primer item
+						// ESTRATEGIA 2: Buscar en el HTML del item (clase wpdm-personalization-info)
 						if (customizationPrice === '0,00 €') {
-							var $firstCustomization = $firstItem.find('.wpdm-personalization-info');
+							var $firstCustomization = $firstItemRow.find('.wpdm-personalization-info');
 							if ($firstCustomization.length) {
 								var priceText = $firstCustomization.find('strong').text().trim();
 								if (!priceText) {
@@ -1618,8 +2185,52 @@ class WPDM_Customization {
 								}
 								if (priceText) {
 									customizationPrice = priceText;
+									console.log('[WPDM Cart] Precio encontrado en wpdm-personalization-info:', customizationPrice);
 								}
 							}
+						}
+						
+						// ESTRATEGIA 3: Si aún no se encontró, usar AJAX para obtener el precio del cart_item_key
+						if (customizationPrice === '0,00 €' && $removeLink.length) {
+							var href = $removeLink.attr('href') || '';
+							var cartItemKeyMatch = href.match(/remove_item=([^&]+)/);
+							if (cartItemKeyMatch && cartItemKeyMatch[1]) {
+								var cartItemKey = decodeURIComponent(cartItemKeyMatch[1]);
+								console.log('[WPDM Cart] Obteniendo precio via AJAX para cart_item_key:', cartItemKey);
+								
+								// Hacer petición AJAX para obtener el precio de personalización
+								var ajaxUrl = (typeof wpdmCustomization !== 'undefined' && wpdmCustomization.ajax_url) 
+									? wpdmCustomization.ajax_url 
+									: (typeof wc_add_to_cart_params !== 'undefined' && wc_add_to_cart_params.ajax_url)
+										? wc_add_to_cart_params.ajax_url
+										: '/wp-admin/admin-ajax.php';
+								
+								$.ajax({
+									url: ajaxUrl,
+									type: 'POST',
+									data: {
+										action: 'wpdm_get_cart_item_customization',
+										cart_item_key: cartItemKey
+									},
+									async: false, // Síncrono para obtener el precio antes de continuar
+									success: function(response) {
+										if (response.success && response.data) {
+											// El endpoint devuelve 'price', no 'customization_price'
+											var price = parseFloat(response.data.price || response.data.customization_price || 0) || 0;
+											if (price > 0) {
+												// Formatear precio (ej: 150.00 -> "150,00 €")
+												customizationPrice = price.toFixed(2).replace('.', ',') + ' €';
+												console.log('[WPDM Cart] Precio obtenido via AJAX:', customizationPrice);
+											}
+										}
+									}
+								});
+							}
+						}
+						
+						// Si aún no se encontró, el producto no tiene personalización
+						if (customizationPrice === '0,00 €') {
+							console.log('[WPDM Cart] No se encontró precio de personalización para producto', productId, '- probablemente no tiene personalización');
 						}
 						
 						// Obtener detalles de personalización del primer item
@@ -1678,6 +2289,7 @@ class WPDM_Customization {
 						
 						// Mover todas las variaciones al contenedor (tres columnas)
 						items.forEach(function($item, index) {
+							var $itemRow = $item.closest('tr, .cart_item');
 							var $variationCard = $('<div class="wpdm-variation-card" style="display: flex; align-items: center; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff; transition: all 0.2s; gap: 8px;"></div>');
 							
 							// Hover effect
@@ -1699,8 +2311,20 @@ class WPDM_Customization {
 							// Contenedor de información
 							var $infoContainer = $('<div style="flex: 1; min-width: 0;"></div>');
 							
-							// Nombre de variación (más compacto)
+							// Nombre de variación (más compacto) - limpiar enlaces repetidos
 							var variationName = $item.find('.product-name a').text().trim();
+							// Limpiar el nombre: extraer solo la parte antes de "Ver archivo" o eliminar todos los enlaces
+							// Primero intentar extraer solo hasta "Ver archivo"
+							var nameMatch = variationName.match(/^(.+?)(?:Ver\s*archivo|→)/i);
+							if (nameMatch && nameMatch[1]) {
+								variationName = nameMatch[1].trim();
+							} else {
+								// Si no funciona, eliminar todos los enlaces
+								variationName = variationName.replace(/Ver\s*archivo\s*→/gi, ''); // Eliminar "Ver archivo →" (con o sin espacios)
+								variationName = variationName.replace(/Ver\s*archivo/gi, ''); // Eliminar "Ver archivo" sin flecha
+								variationName = variationName.replace(/→/g, ''); // Eliminar cualquier flecha restante
+							}
+							variationName = variationName.replace(/\s+/g, ' ').trim(); // Eliminar espacios múltiples
 							$infoContainer.append($('<div style="font-weight: 500; color: #333; font-size: 0.9em; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + variationName + '">').text(variationName));
 							
 							// Precio y cantidad en línea (fuente más grande)
@@ -1739,6 +2363,47 @@ class WPDM_Customization {
 							
 							$infoContainer.append($priceQtyRow);
 							
+							// MODO PER-COLOR: Obtener precio de personalización de esta variación específica
+							var variationCustomizationPrice = '0,00 €';
+							if (isPerColorMode) {
+								// Buscar precio de personalización en el item de esta variación
+								var $itemRemoveLink = $itemRow.find('a[href*="remove_item"]');
+								if ($itemRemoveLink.length) {
+									var itemAriaLabel = $itemRemoveLink.attr('aria-label') || '';
+									var itemPriceMatch = itemAriaLabel.match(/([\d,\.]+)\s*€/);
+									if (itemPriceMatch) {
+										variationCustomizationPrice = itemPriceMatch[0];
+									} else {
+										// Intentar obtener del HTML del item
+										var $itemCustomization = $itemRow.find('.wpdm-personalization-info');
+										if ($itemCustomization.length) {
+											var itemPriceText = $itemCustomization.find('strong').text().trim();
+											if (!itemPriceText) {
+												var itemFullText = $itemCustomization.text();
+												var itemPriceMatch2 = itemFullText.match(/([\d,\.]+)\s*€/);
+												if (itemPriceMatch2) {
+													itemPriceText = itemPriceMatch2[0];
+												}
+											}
+											if (itemPriceText) {
+												variationCustomizationPrice = itemPriceText;
+											}
+										}
+									}
+									
+									// Sumar al total de personalización
+									var priceValue = parseFloat(variationCustomizationPrice.replace(/[^\d,.-]/g, '').replace(',', '.'));
+									if (!isNaN(priceValue) && priceValue > 0) {
+										totalCustomizationPrice += priceValue;
+									}
+								}
+								
+								// Mostrar precio de personalización en la tarjeta si existe
+								if (variationCustomizationPrice !== '0,00 €' && parseFloat(variationCustomizationPrice.replace(/[^\d,.-]/g, '').replace(',', '.')) > 0) {
+									$infoContainer.append($('<div style="font-size: 0.8em; color: #0464AC; margin-top: 2px; font-weight: 500;">Personalización: ' + variationCustomizationPrice + '</div>'));
+								}
+							}
+							
 							// Total (más grande)
 							var total = $item.find('.product-subtotal').text().trim();
 							$infoContainer.append($('<div style="font-weight: 600; color: #0464AC; font-size: 1em; margin-top: 3px; text-align: right; padding-top: 3px; border-top: 1px solid #e0e0e0;">').text(total));
@@ -1750,101 +2415,267 @@ class WPDM_Customization {
 						
 						$variationsContainer.append($variationsGrid);
 						
-						// Línea de personalización global
+						// Línea de personalización (global o per-color)
+						var $customizationRow = null;
 						var uniqueId = 'wpdm-group-details-' + productId;
-						var $customizationRow = $('<div class="wpdm-group-customization" style="padding: 10px 15px; background: #fff; border-top: 2px solid #0464AC;"></div>');
-						var $customizationHeader = $('<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px;"></div>');
-						$customizationHeader.append('<span style="font-weight: 600; color: #0464AC; font-size: 1em;">Personalización GLOBAL: <strong style="color: #0464AC;">' + customizationPrice + '</strong></span>');
-						$customizationHeader.append('<button type="button" class="wpdm-toggle-details-btn" data-target="' + uniqueId + '" style="background: #0464AC; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background 0.2s; white-space: nowrap;">Ver detalles ▼</button>');
 						
-						// Añadir texto "Cantidad fija (personalizado)" después de personalización GLOBAL
-						var $fixedQtyText = $('<div style="font-size: 0.85em; color: #666; margin-top: 4px;"><span style="margin-right: 4px;">🔒</span>Cantidad fija (personalizado)</div>');
-						$customizationRow.append($customizationHeader);
-						$customizationRow.append($fixedQtyText);
+						// Determinar precio y texto según el modo
+						var finalCustomizationPrice = '0,00 €';
+						var customizationLabel = 'Personalización GLOBAL';
 						
-						// Detalles de personalización (ocultos) - usar clase CSS
-						var $detailsContainer = $('<div id="' + uniqueId + '" class="wpdm-customization-details-content wpdm-details-hidden" style="padding: 12px 15px; background: #f9f9f9; border-top: 1px solid #e0e0e0; margin-top: 8px;"></div>');
-						
-						// Siempre intentar obtener detalles via AJAX para asegurar que funcionen
-						$detailsContainer.html('<p style="color: #666; font-style: italic;">Cargando detalles...</p>');
-						
-						// Obtener cart_item_key del primer item
-						var $firstItemRow = $firstItem.closest('tr, .cart_item');
-						var cartItemKey = null;
-						
-						// Intentar obtener de data attributes o del DOM
-						if ($firstItemRow.length) {
-							// Buscar en los links de eliminar (aunque estén ocultos)
-							var $removeLink = $firstItemRow.find('a[href*="remove_item"]');
-							if ($removeLink.length) {
-								var href = $removeLink.attr('href');
-								var match = href.match(/remove_item=([^&]+)/);
-								if (match) {
-									cartItemKey = decodeURIComponent(match[1]);
-								}
+						if (isPerColorMode) {
+							// Modo per-color: usar el total sumado de todas las variaciones
+							if (totalCustomizationPrice > 0) {
+								finalCustomizationPrice = totalCustomizationPrice.toFixed(2).replace('.', ',') + ' €';
+								customizationLabel = 'Personalización TOTAL (por variación)';
 							}
+						} else if (isGlobalMode) {
+							// Modo global: usar el precio único
+							finalCustomizationPrice = customizationPrice;
+							customizationLabel = 'Personalización GLOBAL';
 						}
 						
-						// Si tenemos el cart_item_key, hacer petición AJAX
-						if (cartItemKey) {
+						// Solo crear la sección de personalización si hay precio (producto tiene personalización)
+						var priceValue = parseFloat(finalCustomizationPrice.replace(/[^\d,.-]/g, '').replace(',', '.'));
+						if (!isNaN(priceValue) && priceValue > 0) {
+							$customizationRow = $('<div class="wpdm-group-customization" style="padding: 10px 15px; background: #fff; border-top: 2px solid #0464AC;"></div>');
+							var $customizationHeader = $('<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px;"></div>');
+							$customizationHeader.append('<span style="font-weight: 600; color: #0464AC; font-size: 1em;">' + customizationLabel + ': <strong style="color: #0464AC;">' + finalCustomizationPrice + '</strong></span>');
+							$customizationHeader.append('<button type="button" class="wpdm-toggle-details-btn" data-target="' + uniqueId + '" style="background: #0464AC; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background 0.2s; white-space: nowrap;">Ver detalles ▼</button>');
+							
+							// Añadir texto "Cantidad fija (personalizado)" después de personalización GLOBAL
+							var $fixedQtyText = $('<div style="font-size: 0.85em; color: #666; margin-top: 4px;"><span style="margin-right: 4px;">🔒</span>Cantidad fija (personalizado)</div>');
+							// Detalles de personalización (ocultos) - usar clase CSS
+							var $detailsContainer = $('<div id="' + uniqueId + '" class="wpdm-customization-details-content wpdm-details-hidden" style="padding: 12px 15px; background: #f9f9f9; border-top: 1px solid #e0e0e0; margin-top: 8px;"></div>');
+							
+							// Siempre intentar obtener detalles via AJAX para asegurar que funcionen
+							$detailsContainer.html('<p style="color: #666; font-style: italic;">Cargando detalles...</p>');
+							
 							var ajaxUrl = (typeof wpdmCustomization !== 'undefined' && wpdmCustomization.ajax_url) 
 								? wpdmCustomization.ajax_url 
 								: (typeof wc_add_to_cart_params !== 'undefined' && wc_add_to_cart_params.ajax_url)
 									? wc_add_to_cart_params.ajax_url
 									: '/wp-admin/admin-ajax.php';
 							
-							$.ajax({
-								url: ajaxUrl,
-								type: 'POST',
-								data: {
-									action: 'wpdm_get_cart_item_customization',
-									cart_item_key: cartItemKey
-								},
-								success: function(response) {
-									if (response.success && response.data && response.data.details) {
-										$detailsContainer.html(response.data.details);
+							// MODO PER-COLOR: Obtener detalles de TODAS las variaciones
+							if (isPerColorMode) {
+								var allDetailsHtml = [];
+								var detailsCount = 0;
+								var totalItems = items.length;
+								
+								// Obtener cart_item_key de cada variación
+								items.forEach(function($item, index) {
+									var $itemRow = $item.closest('tr, .cart_item');
+									var $removeLink = $itemRow.find('a[href*="remove_item"]');
+									if ($removeLink.length) {
+										var href = $removeLink.attr('href');
+										var match = href.match(/remove_item=([^&]+)/);
+										if (match) {
+											var cartItemKey = decodeURIComponent(match[1]);
+											var variationName = $item.find('.product-name a').text().trim();
+											
+											// Limpiar el nombre: extraer solo la parte antes de "Ver archivo" o eliminar todos los enlaces
+											// Primero intentar extraer solo hasta "Ver archivo"
+											var nameMatch = variationName.match(/^(.+?)(?:Ver\s*archivo|→)/i);
+											if (nameMatch && nameMatch[1]) {
+												variationName = nameMatch[1].trim();
+											} else {
+												// Si no funciona, eliminar todos los enlaces
+												variationName = variationName.replace(/Ver\s*archivo\s*→/gi, ''); // Eliminar "Ver archivo →" (con o sin espacios)
+												variationName = variationName.replace(/Ver\s*archivo/gi, ''); // Eliminar "Ver archivo" sin flecha
+												variationName = variationName.replace(/→/g, ''); // Eliminar cualquier flecha restante
+											}
+											variationName = variationName.replace(/\s+/g, ' ').trim(); // Eliminar espacios múltiples
+											
+											// Obtener detalles de esta variación
+											$.ajax({
+												url: ajaxUrl,
+												type: 'POST',
+												data: {
+													action: 'wpdm_get_cart_item_customization',
+													cart_item_key: cartItemKey
+												},
+												success: function(response) {
+													detailsCount++;
+													var variationDetails = '';
+													
+													if (response.success && response.data && response.data.details) {
+														// Limpiar el nombre de variación: extraer solo la parte antes de "Ver archivo"
+														// Primero intentar extraer solo hasta "Ver archivo"
+														var nameMatch = variationName.match(/^(.+?)(?:Ver\s*archivo|→)/i);
+														var cleanVariationName;
+														if (nameMatch && nameMatch[1]) {
+															cleanVariationName = nameMatch[1].trim();
+														} else {
+															// Si no funciona, eliminar todos los enlaces
+															cleanVariationName = variationName.replace(/Ver\s*archivo\s*→/gi, ''); // Eliminar "Ver archivo →" (con o sin espacios)
+															cleanVariationName = cleanVariationName.replace(/Ver\s*archivo/gi, ''); // Eliminar "Ver archivo" sin flecha
+															cleanVariationName = cleanVariationName.replace(/→/g, ''); // Eliminar cualquier flecha restante
+														}
+														cleanVariationName = cleanVariationName.replace(/\s+/g, ' ').trim(); // Eliminar espacios múltiples
+														
+														// Añadir encabezado con nombre de variación limpio
+														var variationHeader = '<div style="margin-bottom: 15px; padding: 8px; background: #f0f0f0; border-radius: 4px; border-left: 4px solid #0464AC;"><strong style="color: #0464AC; font-size: 0.95em;">' + cleanVariationName + '</strong></div>';
+														variationDetails = variationHeader + response.data.details;
+													}
+													
+													// Guardar detalles en el índice correcto
+													allDetailsHtml[index] = variationDetails;
+													
+													// Cuando todas las peticiones terminen, combinar los detalles
+													if (detailsCount === totalItems) {
+														var combinedDetails = '';
+														for (var i = 0; i < allDetailsHtml.length; i++) {
+															if (allDetailsHtml[i] && allDetailsHtml[i].length > 0) {
+																combinedDetails += allDetailsHtml[i];
+															}
+														}
+														
+														if (combinedDetails.length > 0) {
+															$detailsContainer.html(combinedDetails);
+														} else {
+															$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
+														}
+													}
+												},
+												error: function() {
+													detailsCount++;
+													allDetailsHtml[index] = '';
+													
+													// Cuando todas las peticiones terminen
+													if (detailsCount === totalItems) {
+														var combinedDetails = '';
+														for (var i = 0; i < allDetailsHtml.length; i++) {
+															if (allDetailsHtml[i] && allDetailsHtml[i].length > 0) {
+																combinedDetails += allDetailsHtml[i];
+															}
+														}
+														
+														if (combinedDetails.length > 0) {
+															$detailsContainer.html(combinedDetails);
+														} else {
+															$detailsContainer.html('<p style="color: #666; font-style: italic;">Error al cargar detalles</p>');
+														}
+													}
+												}
+											});
+										}
 									} else {
-										// Si AJAX falla, intentar usar los detalles del HTML
-										if (detailsHtml && detailsHtml.indexOf('no disponibles') === -1) {
-											$detailsContainer.html(detailsHtml);
-										} else {
-											$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
+										// Si no hay remove link, contar como completado
+										detailsCount++;
+										allDetailsHtml[index] = '';
+										
+										if (detailsCount === totalItems) {
+											var combinedDetails = '';
+											for (var i = 0; i < allDetailsHtml.length; i++) {
+												if (allDetailsHtml[i] && allDetailsHtml[i].length > 0) {
+													combinedDetails += allDetailsHtml[i];
+												}
+											}
+											
+											if (combinedDetails.length > 0) {
+												$detailsContainer.html(combinedDetails);
+											} else {
+												$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
+											}
 										}
 									}
-								},
-								error: function() {
-									// Si AJAX falla, intentar usar los detalles del HTML
+								});
+							} else {
+								// MODO GLOBAL: Obtener detalles del primer item
+								var $firstItemRow = $firstItem.closest('tr, .cart_item');
+								var cartItemKey = null;
+								
+								// Intentar obtener de data attributes o del DOM
+								if ($firstItemRow.length) {
+									// Buscar en los links de eliminar (aunque estén ocultos)
+									var $removeLink = $firstItemRow.find('a[href*="remove_item"]');
+									if ($removeLink.length) {
+										var href = $removeLink.attr('href');
+										var match = href.match(/remove_item=([^&]+)/);
+										if (match) {
+											cartItemKey = decodeURIComponent(match[1]);
+										}
+									}
+								}
+								
+								// Si tenemos el cart_item_key, hacer petición AJAX
+								if (cartItemKey) {
+									$.ajax({
+										url: ajaxUrl,
+										type: 'POST',
+										data: {
+											action: 'wpdm_get_cart_item_customization',
+											cart_item_key: cartItemKey
+										},
+										success: function(response) {
+											if (response.success && response.data && response.data.details) {
+												$detailsContainer.html(response.data.details);
+											} else {
+												// Si AJAX falla, intentar usar los detalles del HTML
+												if (detailsHtml && detailsHtml.indexOf('no disponibles') === -1) {
+													$detailsContainer.html(detailsHtml);
+												} else {
+													$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
+												}
+											}
+										},
+										error: function() {
+											// Si AJAX falla, intentar usar los detalles del HTML
+											if (detailsHtml && detailsHtml.indexOf('no disponibles') === -1) {
+												$detailsContainer.html(detailsHtml);
+											} else {
+												$detailsContainer.html('<p style="color: #666; font-style: italic;">Error al cargar detalles</p>');
+											}
+										}
+									});
+								} else {
+									// Si no tenemos cart_item_key, usar los detalles del HTML si existen
 									if (detailsHtml && detailsHtml.indexOf('no disponibles') === -1) {
 										$detailsContainer.html(detailsHtml);
 									} else {
-										$detailsContainer.html('<p style="color: #666; font-style: italic;">Error al cargar detalles</p>');
+										$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
 									}
 								}
-							});
-						} else {
-							// Si no tenemos cart_item_key, usar los detalles del HTML si existen
-							if (detailsHtml && detailsHtml.indexOf('no disponibles') === -1) {
-								$detailsContainer.html(detailsHtml);
-							} else {
-								$detailsContainer.html('<p style="color: #666; font-style: italic;">Detalles de personalización no disponibles</p>');
 							}
+							
+							// Añadir elementos en el orden correcto
+							$customizationRow.append($customizationHeader);
+							$customizationRow.append($fixedQtyText);
+							$customizationRow.append($detailsContainer);
 						}
-						
-						$customizationRow.append($customizationHeader);
-						$customizationRow.append($detailsContainer);
 						
 						// Ensamblar grupo
 						$groupInner.append($groupHeader);
 						$groupInner.append($variationsContainer);
-						$groupInner.append($customizationRow);
+						// Solo añadir sección de personalización si existe
+						if ($customizationRow) {
+							$groupInner.append($customizationRow);
+						}
 						$groupCell.append($groupInner);
 						$groupContainer.append($groupCell);
 						
 						// Insertar antes del primer item y ocultar items originales
 						$firstItem.before($groupContainer);
 						items.forEach(function($item) {
-							$item.hide();
+							// Ocultar el elemento completo (tr o div)
+							var $row = $item.closest('tr, .cart_item');
+							if ($row.length) {
+								$row.hide();
+							} else {
+								$item.hide();
+							}
+							// Marcar como reorganizado para evitar que MutationObserver lo detecte
+							$item.data('wpdm-reorganized', true);
+							if ($row.length && $row[0] !== $item[0]) {
+								$row.data('wpdm-reorganized', true);
+							}
 						});
+						
+						console.log('[WPDM Cart] Grupo creado para producto ID:', productId, 'con', items.length, 'variaciones');
+						
+						// Marcar el contenedor de grupo como reorganizado
+						$groupContainer.data('wpdm-reorganized', true);
 					}
 				});
 			}
@@ -2024,22 +2855,149 @@ class WPDM_Customization {
 				}
 			});
 			
+			// Flag para prevenir bucles infinitos
+			var isReorganizing = false;
+			var lastReorganizationTime = 0;
+			var reorganizationCooldown = 2000; // 2 segundos entre reorganizaciones
+			
+			// Función para inicializar todo
+			function initializeWPDMCart() {
+				// Prevenir ejecución múltiple
+				var now = Date.now();
+				if (isReorganizing || (now - lastReorganizationTime < reorganizationCooldown)) {
+					console.log('[WPDM Cart] Reorganización ya en curso o muy reciente, saltando...');
+					return;
+				}
+				
+				isReorganizing = true;
+				lastReorganizationTime = now;
+				
+				console.log('[WPDM Cart] Inicializando reorganización del carrito');
+				
+				try {
+					initWPDMToggles();
+					reorganizeCartItems();
+				} catch (error) {
+					console.error('[WPDM Cart] Error durante reorganización:', error);
+				} finally {
+					// Liberar flag después de un delay
+					setTimeout(function() {
+						isReorganizing = false;
+					}, 1000);
+				}
+			}
+			
 			// Inicializar al cargar
 			$(document).ready(function() {
 				setTimeout(function() {
-					initWPDMToggles();
-					reorganizeCartItems();
+					initializeWPDMCart();
 				}, 100);
 			});
 			
-			// Re-inicializar cuando se actualiza el carrito
-			$(document.body).on('updated_cart_totals updated_checkout wc_fragments_refreshed updated_wc_div', function() {
+			// Re-inicializar cuando se actualiza el carrito (múltiples eventos)
+			$(document.body).on('updated_cart_totals updated_checkout wc_fragments_refreshed updated_wc_div added_to_cart removed_from_cart', function() {
 				console.log('[WPDM Cart] Carrito actualizado, re-inicializando');
 				setTimeout(function() {
-					initWPDMToggles();
-					reorganizeCartItems();
+					initializeWPDMCart();
 				}, 500);
 			});
+			
+			// También escuchar eventos de AJAX de WooCommerce
+			$(document).ajaxComplete(function(event, xhr, settings) {
+				// Detectar si fue una petición relacionada con el carrito
+				if (settings.url && (
+					settings.url.indexOf('add-to-cart') !== -1 ||
+					settings.url.indexOf('update-cart') !== -1 ||
+					settings.url.indexOf('remove-cart-item') !== -1 ||
+					settings.url.indexOf('wc-ajax') !== -1
+				)) {
+					console.log('[WPDM Cart] Detectada petición AJAX del carrito, re-inicializando');
+					setTimeout(function() {
+						initializeWPDMCart();
+					}, 800);
+				}
+			});
+			
+			// Usar MutationObserver para detectar cambios en el DOM del carrito
+			if (typeof MutationObserver !== 'undefined') {
+				var cartObserver = new MutationObserver(function(mutations) {
+					// Ignorar si ya estamos reorganizando
+					if (isReorganizing) {
+						return;
+					}
+					
+					var shouldReorganize = false;
+					
+					mutations.forEach(function(mutation) {
+						// Ignorar cambios en elementos que nosotros mismos creamos
+						if (mutation.target && (
+							$(mutation.target).hasClass('wpdm-product-group-container') ||
+							$(mutation.target).hasClass('wpdm-product-group-wrapper') ||
+							$(mutation.target).closest('.wpdm-product-group-container').length > 0 ||
+							$(mutation.target).data('wpdm-reorganized') === true
+						)) {
+							return; // Ignorar cambios en nuestros propios elementos
+						}
+						
+						// Detectar si se añadieron nuevos items al carrito (que no sean nuestros)
+						if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+							for (var i = 0; i < mutation.addedNodes.length; i++) {
+								var node = mutation.addedNodes[i];
+								if (node.nodeType === 1) { // Element node
+									var $node = $(node);
+									// Ignorar si es un elemento que nosotros creamos
+									if ($node.hasClass('wpdm-product-group-container') || 
+										$node.closest('.wpdm-product-group-container').length > 0 ||
+										$node.data('wpdm-reorganized') === true) {
+										continue;
+									}
+									
+									// Verificar si es un item del carrito nuevo (no reorganizado)
+									if (($node.hasClass('cart_item') || 
+										$node.hasClass('wpdm-customized-item') ||
+										$node.find('.cart_item:not([data-wpdm-reorganized]), .wpdm-customized-item:not([data-wpdm-reorganized])').length > 0) &&
+										!$node.data('wpdm-reorganized')) {
+										shouldReorganize = true;
+										break;
+									}
+								}
+							}
+						}
+						
+						// También detectar si se modificaron clases de items existentes (que no sean nuestros)
+						if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+							var $target = $(mutation.target);
+							if (!$target.data('wpdm-reorganized') && 
+								($target.hasClass('cart_item') || $target.hasClass('wpdm-customized-item'))) {
+								shouldReorganize = true;
+							}
+						}
+					});
+					
+					if (shouldReorganize) {
+						console.log('[WPDM Cart] MutationObserver detectó cambios en el carrito');
+						setTimeout(function() {
+							initializeWPDMCart();
+						}, 500);
+					}
+				});
+				
+				// Observar cambios en el body (para capturar todos los cambios del carrito)
+				$(document).ready(function() {
+					setTimeout(function() {
+						var $cartContainer = $('.cart, .woocommerce-cart-form, .shop_table.cart, tbody');
+						if ($cartContainer.length) {
+							cartObserver.observe($cartContainer[0], {
+								childList: true,
+								subtree: true,
+								attributes: true,
+								attributeFilter: ['class']
+							});
+							console.log('[WPDM Cart] MutationObserver iniciado');
+						}
+					}, 500);
+				});
+			}
 			
 		})(jQuery);
 		</script>
@@ -2247,42 +3205,29 @@ class WPDM_Customization {
 			}
 		}
 		
-		// Añadir fees agrupados para modo "global"
+		// CRÍTICO: Sumar todos los fees de personalización en un solo fee "Personalización GLOBAL"
+		// Esto asegura que se muestre correctamente en los totales del carrito
+		$total_customization_price = 0;
+		$total_products_with_customization = 0;
+		
 		foreach ( $fees_by_product as $fee_key => $fee_data ) {
-			$product_name = $fee_data['product_name'];
-			$variations = array_unique( $fee_data['variations'] );
+			$total_customization_price += $fee_data['price'];
+			$total_products_with_customization++;
+		}
+		
+		// Solo añadir el fee si hay personalización
+		if ( $total_customization_price > 0 ) {
+			$fee_name = __( 'Personalización GLOBAL', 'woo-prices-dynamics-makito' );
+			$cart->add_fee( $fee_name, $total_customization_price, true );
 			
-			// Contar cuántas variaciones hay en el carrito para este producto
-			$variations_count = 0;
-			foreach ( $cart->get_cart() as $cart_item ) {
-				if ( ! empty( $cart_item['wpdm_customization'] ) ) {
-					$customization = $cart_item['wpdm_customization'];
-					$mode = isset( $customization['mode'] ) ? $customization['mode'] : 'global';
-					$item_product_id = $cart_item['product_id'];
-					
-					if ( $mode === 'global' && $item_product_id == explode( '_', $fee_key )[0] ) {
-						$variations_count++;
-					}
-				}
+			if ( class_exists( 'WPDM_Logger' ) ) {
+				WPDM_Logger::info( 'add_customization_fees_to_cart', 'Fee de personalización GLOBAL añadido (suma total)', array(
+					'total_customization_price' => $total_customization_price,
+					'total_products' => $total_products_with_customization,
+					'fee_name' => $fee_name,
+					'fees_by_product' => $fees_by_product
+				) );
 			}
-			
-			// Nombre del fee: "Personalización GLOBAL" si hay múltiples variaciones
-			if ( $variations_count > 1 ) {
-				$fee_name = __( 'Personalización GLOBAL', 'woo-prices-dynamics-makito' );
-			} else {
-				// Si solo hay una variación, usar el nombre del producto
-				$fee_name = sprintf( __( 'Personalización %s', 'woo-prices-dynamics-makito' ), $product_name );
-			}
-			
-			$cart->add_fee( $fee_name, $fee_data['price'], true );
-			
-			WPDM_Logger::info( 'add_customization_fees_to_cart', 'Fee de personalización añadido (global - único)', array(
-				'product_name' => $product_name,
-				'variations_count' => $variations_count,
-				'customization_price' => $fee_data['price'],
-				'fee_name' => $fee_name,
-				'note' => 'Precio único para todas las variaciones en modo global'
-			) );
 		}
 	}
 
