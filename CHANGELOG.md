@@ -5,6 +5,46 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.7.4] - 2025-01-XX
+
+### 🎯 Separación inteligente de productos con diferentes personalizaciones
+
+**Mejoras principales:**
+
+#### 🔍 Identificación única de personalizaciones
+- ✅ Sistema de hash basado en datos reales de personalización (áreas, imágenes, técnicas, colores)
+- ✅ Comparación de personalizaciones mediante peticiones AJAX para obtener datos completos
+- ✅ Separación automática de productos con el mismo ID pero diferentes personalizaciones
+- ✅ Agrupación correcta de variaciones con la misma personalización
+
+#### 📊 Agrupación mejorada
+- ✅ Productos con la misma personalización se agrupan juntas (todas sus variaciones)
+- ✅ Productos con diferentes personalizaciones se muestran como grupos separados
+- ✅ Cada grupo muestra su propio precio y detalles de personalización correctos
+- ✅ Funciona tanto para modo "global" como "per-color"
+
+#### 🛠️ Mejoras técnicas
+- ✅ Endpoint AJAX actualizado para devolver datos de personalización en crudo
+- ✅ Función `createCustomizationHash()` que genera identificadores únicos
+- ✅ Logs detallados para depuración y seguimiento
+- ✅ Manejo robusto de errores con fallback
+
+#### 🚫 Deshabilitación de edición de cantidad
+- ✅ Cantidad deshabilitada para productos sin personalizar (mostrada como texto)
+- ✅ Si el cliente necesita cambiar cantidad, debe eliminar y volver a añadir
+- ✅ Evita problemas de bucles infinitos y actualizaciones incorrectas
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`:
+  - Sistema de hash de personalización basado en datos reales
+  - Peticiones AJAX para obtener datos de personalización
+  - Separación inteligente de grupos por personalización
+  - Deshabilitación de edición de cantidad
+- `woo-prices-dynamics-makito.php` (v3.7.4)
+- `CHANGELOG.md`
+
+---
+
 ## [3.5.8] - 2025-12-09
 
 ### ✨ Mejoras en visualización de carrito y personalización

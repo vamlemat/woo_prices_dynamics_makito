@@ -1902,7 +1902,8 @@ class WPDM_Customization {
 		
 		wp_send_json_success( array(
 			'details' => $details_html,
-			'price' => isset( $cart_item['wpdm_customization_price'] ) ? floatval( $cart_item['wpdm_customization_price'] ) : 0
+			'price' => isset( $cart_item['wpdm_customization_price'] ) ? floatval( $cart_item['wpdm_customization_price'] ) : 0,
+			'customization' => $customization // Incluir datos de personalización en crudo para comparación
 		) );
 	}
 
@@ -2040,11 +2041,68 @@ class WPDM_Customization {
 				// Marcar que estamos reorganizando para evitar bucles
 				$('.cart_item').data('wpdm-reorganized', false);
 				
-				// Agrupar items por producto
-				// Buscar TODOS los productos variables, no solo los personalizados
+				// Función para obtener el cart_item_key de un item
+				function getCartItemKey($row) {
+					var $removeLink = $row.find('a[href*="remove_item"]');
+					if ($removeLink.length) {
+						var href = $removeLink.attr('href') || '';
+						var match = href.match(/remove_item=([^&]+)/);
+						if (match) {
+							return decodeURIComponent(match[1]);
+						}
+					}
+					return null;
+				}
+				
+				// Función para obtener la firma de personalización basada en el cart_item_key del primer item
+				// Esto identifica diferentes "sesiones" de añadir al carrito
+				function getCustomizationSignature($row) {
+					var signature = '';
+					
+					// Verificar si tiene personalización y el modo
+					var rowClasses = $row.attr('class') || '';
+					var hasCustomization = rowClasses.indexOf('wpdm-customized-item') !== -1 || 
+					                      rowClasses.indexOf('wpdm-customized-global') !== -1 || 
+					                      rowClasses.indexOf('wpdm-customized-per-color') !== -1;
+					
+					var isGlobalMode = rowClasses.indexOf('wpdm-customized-global') !== -1;
+					var isPerColorMode = rowClasses.indexOf('wpdm-customized-per-color') !== -1;
+					
+					if (hasCustomization) {
+						// Para TODOS los modos de personalización, usar el cart_item_key como identificador
+						// Esto agrupa todas las variaciones añadidas en la misma "sesión" (misma personalización)
+						var cartItemKey = getCartItemKey($row);
+						if (cartItemKey) {
+							// Usar los primeros 16 caracteres del cart_item_key como firma
+							// Items con el mismo prefijo pertenecen a la misma "sesión" de personalización
+							if (isGlobalMode) {
+								signature = 'global-' + cartItemKey.substring(0, 16);
+							} else if (isPerColorMode) {
+								signature = 'per-color-' + cartItemKey.substring(0, 16);
+							} else {
+								signature = 'custom-' + cartItemKey.substring(0, 16);
+							}
+						} else {
+							// Fallback si no se encuentra cart_item_key
+							if (isGlobalMode) {
+								signature = 'global-default';
+							} else if (isPerColorMode) {
+								signature = 'per-color-default';
+							} else {
+								signature = 'custom-default';
+							}
+						}
+					}
+					
+					return signature || 'no-customization';
+				}
+				
+				// Agrupar items por producto + personalización
+				// Para productos personalizados, diferentes personalizaciones = grupos diferentes
 				var productGroups = {};
 				
-				// ESTRATEGIA 1: Buscar TODOS los items del carrito y agruparlos por producto padre
+				// ESTRATEGIA 1: Buscar TODOS los items del carrito y agruparlos por producto padre + personalización
+				var totalItemsFound = 0;
 				$('tbody tr.cart_item, .cart_item').each(function() {
 					var $row = $(this);
 					
@@ -2053,79 +2111,332 @@ class WPDM_Customization {
 						return;
 					}
 					
+					totalItemsFound++;
 					var productId = null;
 					
-					// PRIORIDAD 1: Buscar la clase wpdm-product-group-{id} (para productos personalizados)
-					var allClasses = $row.attr('class') || '';
-					var match = allClasses.match(/wpdm-product-group-(\d+)/);
-					if (match && match[1]) {
-						productId = match[1];
-					} else {
-						// PRIORIDAD 2: Intentar obtener el product_id del link del producto
+					// PRIORIDAD 1: Buscar data-product_id en el botón de eliminar (funciona para todos los productos)
+					var $removeLink = $row.find('a[href*="remove_item"]');
+					if ($removeLink.length) {
+						var dataProductId = $removeLink.data('product_id');
+						if (dataProductId) {
+							productId = String(dataProductId); // Convertir a string para consistencia
+							console.log('[WPDM Cart] ✅ productId encontrado via data-product_id:', productId);
+						}
+					}
+					
+					// PRIORIDAD 2: Buscar la clase wpdm-product-group-{id} (para productos personalizados)
+					if (!productId) {
+						var allClasses = $row.attr('class') || '';
+						var match = allClasses.match(/wpdm-product-group-(\d+)/);
+						if (match && match[1]) {
+							productId = match[1];
+							console.log('[WPDM Cart] ✅ productId encontrado via clase wpdm-product-group:', productId);
+						}
+					}
+					
+					// PRIORIDAD 3: Intentar obtener el product_id del link del producto
+					if (!productId) {
 						var $productLink = $row.find('.product-name a').first();
 						if ($productLink.length) {
 							var href = $productLink.attr('href') || '';
 							// Buscar product_id en la URL (puede ser producto padre o variación)
 							var productMatch = href.match(/product[\/=](\d+)/);
 							if (productMatch && productMatch[1]) {
-								var foundProductId = productMatch[1];
-								
-								// Verificar si es una variación buscando data-product_id en el botón de eliminar
-								var $removeLink = $row.find('a[href*="remove_item"]');
-								if ($removeLink.length) {
-									var dataProductId = $removeLink.data('product_id');
-									if (dataProductId && dataProductId != foundProductId) {
-										// Es una variación, usar el data-product_id como product_id padre
-										productId = dataProductId;
-									} else {
-										// Puede ser producto simple o variación sin data attribute
-										// Intentar obtener del nombre del producto (si tiene guión, probablemente es variación)
-										var productName = $productLink.text().trim();
-										if (productName.indexOf(' - ') !== -1 || productName.indexOf(',') !== -1) {
-											// Probablemente es una variación, usar el ID encontrado como parent_id
-											// Para variaciones, necesitamos hacer una petición AJAX o usar el ID del link
-											// Por ahora, agrupamos por el ID encontrado (que puede ser el parent_id)
-											productId = foundProductId;
-										} else {
-											// Producto simple
-											productId = foundProductId;
-										}
-									}
-								} else {
-									// No hay botón de eliminar, usar el ID encontrado
-									productId = foundProductId;
-								}
+								productId = productMatch[1];
+								console.log('[WPDM Cart] ✅ productId encontrado via URL del producto:', productId);
 							}
 						}
 					}
 					
 					if (productId) {
-						if (!productGroups[productId]) {
-							productGroups[productId] = [];
+						// Verificar si tiene personalización
+						var rowClasses = $row.attr('class') || '';
+						var hasCustomization = rowClasses.indexOf('wpdm-customized-item') !== -1 || 
+						                      rowClasses.indexOf('wpdm-customized-global') !== -1 || 
+						                      rowClasses.indexOf('wpdm-customized-per-color') !== -1;
+						
+						// ESTRATEGIA SIMPLIFICADA:
+						// - Para productos CON personalización: Agrupar SOLO por productId (todas las variaciones juntas)
+						// - Para productos SIN personalización: Agrupar SOLO por productId
+						// - Solo separar si realmente hay diferentes personalizaciones (esto se detectará después si es necesario)
+						
+						var groupKey = productId; // Usar solo productId para agrupar
+						
+						// Buscar si ya existe un grupo para este productId
+						if (!productGroups[groupKey]) {
+							productGroups[groupKey] = [];
 						}
 						
 						// Evitar duplicados
 						var alreadyAdded = false;
-						for (var i = 0; i < productGroups[productId].length; i++) {
-							if (productGroups[productId][i][0] === $row[0]) {
+						for (var i = 0; i < productGroups[groupKey].length; i++) {
+							if (productGroups[groupKey][i][0] === $row[0]) {
 								alreadyAdded = true;
 								break;
 							}
 						}
 						
 						if (!alreadyAdded) {
-							productGroups[productId].push($row);
-							console.log('[WPDM Cart] Item añadido al grupo', productId, '- Total items:', productGroups[productId].length);
+							productGroups[groupKey].push($row);
+							console.log('[WPDM Cart] Item añadido al grupo', groupKey, '- Total items:', productGroups[groupKey].length, '- Tiene personalización:', hasCustomization);
 						}
 					} else {
-						console.warn('[WPDM Cart] No se pudo determinar productId para item:', $row);
+						console.warn('[WPDM Cart] ⚠️ No se pudo determinar productId para item:', $row);
+						console.warn('[WPDM Cart] Clases del item:', $row.attr('class'));
+						console.warn('[WPDM Cart] HTML del item:', $row.html().substring(0, 200));
 					}
 				});
 				
-				console.log('[WPDM Cart] Productos encontrados:', Object.keys(productGroups).length, productGroups);
+				console.log('[WPDM Cart] 📊 Total items encontrados:', totalItemsFound);
+				console.log('[WPDM Cart] 📊 Productos agrupados:', Object.keys(productGroups).length);
+				console.log('[WPDM Cart] 📊 Detalle de grupos:', productGroups);
 				
-				// Reorganizar cada grupo (SIEMPRE mostrar visualización agrupada)
-				$.each(productGroups, function(productId, items) {
+				// Separar productos con y sin personalización
+				var customizedGroups = {};
+				var nonCustomizedGroups = {};
+				
+				// Función para crear un hash único de los datos de personalización
+				function createCustomizationHash(customizationData) {
+					if (!customizationData) {
+						console.log('[WPDM Cart] ⚠️ createCustomizationHash: No hay datos de personalización');
+						return 'no-customization';
+					}
+					
+					// Los datos pueden venir en diferentes formatos
+					var areas = customizationData.areas || [];
+					
+					if (!areas || areas.length === 0) {
+						console.log('[WPDM Cart] ⚠️ createCustomizationHash: No hay áreas en los datos');
+						return 'no-areas';
+					}
+					
+					console.log('[WPDM Cart] 🔍 createCustomizationHash: Procesando', areas.length, 'áreas');
+					
+					// Crear un hash basado en áreas, imágenes, colores, etc.
+					var hashParts = [];
+					
+					// Ordenar áreas por índice para consistencia
+					var sortedAreas = areas.slice().sort(function(a, b) {
+						var aIndex = parseInt(a.index) || parseInt(a.area_index) || 0;
+						var bIndex = parseInt(b.index) || parseInt(b.area_index) || 0;
+						return aIndex - bIndex;
+					});
+					
+					sortedAreas.forEach(function(area, idx) {
+						var areaHash = [];
+						var areaIndex = area.index || area.area_index || idx;
+						var areaName = area.name || area.area_name || '';
+						
+						areaHash.push('area-' + areaIndex);
+						areaHash.push('name-' + areaName);
+						
+						// Incluir información de imagen si existe (puede venir como image_url, image_filename, etc.)
+						var imageUrl = area.image_url || area.image || '';
+						var imageFilename = area.image_filename || '';
+						
+						if (imageUrl) {
+							// Usar solo el nombre del archivo, no la URL completa (puede variar)
+							var filename = imageUrl.split('/').pop();
+							areaHash.push('img-' + filename);
+						} else if (imageFilename) {
+							areaHash.push('img-' + imageFilename);
+						}
+						
+						// Incluir información de técnica y colores
+						var technique = area.technique || area.technique_name || '';
+						if (technique) {
+							areaHash.push('tech-' + technique);
+						}
+						
+						var colors = area.colors || [];
+						if (colors && colors.length > 0) {
+							var colorNames = colors.map(function(c) {
+								if (typeof c === 'string') {
+									return c;
+								}
+								return c.name || c.code || c;
+							}).sort().join(',');
+							areaHash.push('colors-' + colorNames);
+						}
+						
+						var areaHashStr = areaHash.join('|');
+						hashParts.push(areaHashStr);
+						console.log('[WPDM Cart] 🔍 Área', areaIndex, 'hash:', areaHashStr);
+					});
+					
+					var finalHash = hashParts.join('||');
+					console.log('[WPDM Cart] 🔑 Hash final de personalización:', finalHash);
+					
+					return finalHash;
+				}
+				
+				// Procesar cada grupo y obtener datos de personalización para separar correctamente
+				var processingPromises = [];
+				
+				$.each(productGroups, function(groupKey, items) {
+					var productId = groupKey;
+					
+					// Verificar si el primer item tiene personalización
+					var $firstItem = items[0];
+					var $firstItemRow = $firstItem.closest('tr, .cart_item');
+					var firstItemClasses = $firstItemRow.attr('class') || '';
+					var hasCustomization = firstItemClasses.indexOf('wpdm-customized-item') !== -1 || 
+					                      firstItemClasses.indexOf('wpdm-customized-global') !== -1 || 
+					                      firstItemClasses.indexOf('wpdm-customized-per-color') !== -1;
+					
+					if (!hasCustomization) {
+						// Producto sin personalización: agrupar todos juntos
+						if (!nonCustomizedGroups[productId]) {
+							nonCustomizedGroups[productId] = [];
+						}
+						nonCustomizedGroups[productId] = nonCustomizedGroups[productId].concat(items);
+						console.log('[WPDM Cart] 📦 Grupo', groupKey, 'añadido a sin personalizar (productId:', productId + ')');
+						return; // Continuar con el siguiente grupo
+					}
+					
+					// Producto con personalización: obtener datos de personalización de cada item
+					console.log('[WPDM Cart] 🔍 Analizando grupo personalizado:', groupKey, '- Product ID:', productId, '- Items:', items.length);
+					
+					// Obtener datos de personalización de todos los items en paralelo
+					var ajaxPromises = [];
+					
+					items.forEach(function($item, index) {
+						var $itemRow = $item.closest('tr, .cart_item');
+						var cartItemKey = getCartItemKey($itemRow);
+						
+						if (cartItemKey) {
+							var ajaxUrl = (typeof wpdmCustomization !== 'undefined' && wpdmCustomization.ajax_url) 
+								? wpdmCustomization.ajax_url 
+								: (typeof wc_add_to_cart_params !== 'undefined' && wc_add_to_cart_params.ajax_url)
+									? wc_add_to_cart_params.ajax_url
+									: '/wp-admin/admin-ajax.php';
+							
+							var promise = $.ajax({
+								url: ajaxUrl,
+								type: 'POST',
+								data: {
+									action: 'wpdm_get_cart_item_customization',
+									cart_item_key: cartItemKey
+								}
+							}).done(function(response) {
+								console.log('[WPDM Cart] 📥 Respuesta AJAX para', cartItemKey, ':', response);
+								if (response.success && response.data) {
+									// Verificar si hay datos de personalización
+									if (response.data.customization) {
+										// Almacenar datos en el item usando data()
+										$itemRow.data('wpdm-customization-data', response.data.customization);
+										console.log('[WPDM Cart] ✅ Datos de personalización almacenados para', cartItemKey, '- Áreas:', response.data.customization.areas ? response.data.customization.areas.length : 0);
+									} else {
+										console.warn('[WPDM Cart] ⚠️ No se encontraron datos de personalización en la respuesta para', cartItemKey, '- Estructura de data:', Object.keys(response.data || {}));
+									}
+								} else {
+									console.warn('[WPDM Cart] ⚠️ Respuesta AJAX no exitosa para', cartItemKey, '- Response:', response);
+								}
+							}).fail(function(xhr, status, error) {
+								console.error('[WPDM Cart] ❌ Error al obtener datos de personalización para', cartItemKey, ':', status, error);
+							});
+							
+							ajaxPromises.push(promise);
+						} else {
+							console.warn('[WPDM Cart] ⚠️ No se pudo obtener cart_item_key para item', index);
+						}
+					});
+					
+					// Esperar a que todas las peticiones AJAX terminen
+					if (ajaxPromises.length > 0) {
+						processingPromises.push(
+							$.when.apply($, ajaxPromises).then(function() {
+								console.log('[WPDM Cart] ✅ Todas las peticiones AJAX completadas para grupo', groupKey);
+								
+								// Agrupar items por hash de personalización
+								var customizationSubGroups = {};
+								
+								items.forEach(function($item) {
+									var $itemRow = $item.closest('tr, .cart_item');
+									var cartItemKey = getCartItemKey($itemRow);
+									var customizationData = $itemRow.data('wpdm-customization-data');
+									
+									console.log('[WPDM Cart] 🔍 Procesando item', cartItemKey, '- Datos de personalización:', customizationData);
+									
+									var customizationHash = createCustomizationHash(customizationData);
+									console.log('[WPDM Cart] 🔑 Hash de personalización para', cartItemKey, ':', customizationHash);
+									
+									var subGroupKey = productId + '_' + customizationHash;
+									
+									if (!customizationSubGroups[subGroupKey]) {
+										customizationSubGroups[subGroupKey] = [];
+									}
+									
+									customizationSubGroups[subGroupKey].push($item);
+								});
+								
+								console.log('[WPDM Cart] 📊 Subgrupos creados para', groupKey, ':', Object.keys(customizationSubGroups));
+								
+								// Añadir cada subgrupo a customizedGroups
+								$.each(customizationSubGroups, function(subGroupKey, subItems) {
+									customizedGroups[subGroupKey] = subItems;
+									console.log('[WPDM Cart] ✅ Subgrupo personalizado creado:', subGroupKey, '- Items:', subItems.length, '- Hash:', subGroupKey.split('_').slice(1).join('_'));
+								});
+							}).fail(function() {
+								console.error('[WPDM Cart] ❌ Error en peticiones AJAX para grupo', groupKey);
+								// Fallback: agrupar todos juntos
+								customizedGroups[groupKey] = items;
+							})
+						);
+					} else {
+						// Si no hay peticiones AJAX, agrupar todos juntos
+						console.warn('[WPDM Cart] ⚠️ No se pudieron crear peticiones AJAX para grupo', groupKey);
+						customizedGroups[groupKey] = items;
+					}
+				});
+				
+				// Esperar a que todas las peticiones AJAX terminen antes de continuar
+				$.when.apply($, processingPromises).then(function() {
+					console.log('[WPDM Cart] ✅ Todos los datos de personalización obtenidos');
+					console.log('[WPDM Cart] Productos personalizados:', Object.keys(customizedGroups).length);
+					console.log('[WPDM Cart] Productos sin personalizar:', Object.keys(nonCustomizedGroups).length);
+					
+					// Continuar con el procesamiento de grupos personalizados
+					processCustomizedGroups();
+				}).fail(function() {
+					console.error('[WPDM Cart] Error al obtener datos de personalización, usando agrupación simple');
+					// Fallback: agrupar por productId sin separar por personalización
+					$.each(productGroups, function(groupKey, items) {
+						var $firstItem = items[0];
+						var $firstItemRow = $firstItem.closest('tr, .cart_item');
+						var firstItemClasses = $firstItemRow.attr('class') || '';
+						var hasCustomization = firstItemClasses.indexOf('wpdm-customized-item') !== -1 || 
+						                      firstItemClasses.indexOf('wpdm-customized-global') !== -1 || 
+						                      firstItemClasses.indexOf('wpdm-customized-per-color') !== -1;
+						
+						if (hasCustomization) {
+							customizedGroups[groupKey] = items;
+						} else {
+							if (!nonCustomizedGroups[groupKey]) {
+								nonCustomizedGroups[groupKey] = [];
+							}
+							nonCustomizedGroups[groupKey] = nonCustomizedGroups[groupKey].concat(items);
+						}
+					});
+					
+					processCustomizedGroups();
+				});
+				
+				// Función para procesar grupos personalizados (se llamará después de obtener los datos)
+				function processCustomizedGroups() {
+					console.log('[WPDM Cart] 🎯 Iniciando procesamiento de grupos personalizados');
+					console.log('[WPDM Cart] Productos personalizados:', Object.keys(customizedGroups).length);
+					console.log('[WPDM Cart] Productos sin personalizar:', Object.keys(nonCustomizedGroups).length);
+					
+					// Reorganizar cada grupo de productos PERSONALIZADOS (visualización agrupada)
+					// NOTA: groupKey ahora incluye el hash de personalización (productId_hash)
+					$.each(customizedGroups, function(groupKey, items) {
+						// Extraer productId de la clave del grupo (puede ser "productId_hash" o solo "productId")
+						var productId = groupKey;
+						if (groupKey.indexOf('_') !== -1) {
+							productId = groupKey.split('_')[0];
+						}
+					
 					// Procesar TODOS los grupos, incluso con 1 item (visualización estrella siempre visible)
 					if (items.length >= 1) {
 						var $firstItem = items[0];
@@ -2139,9 +2450,10 @@ class WPDM_Customization {
 							productName = match[1].trim();
 						}
 						
-						// CRÍTICO: Detectar el modo de personalización (global o per-color)
+						// CRÍTICO: Detectar el modo de personalización (global, per-color, o sin personalización)
 						var isGlobalMode = false;
 						var isPerColorMode = false;
+						var hasCustomization = false;
 						
 						// Verificar clases del primer item para determinar el modo
 						var $firstItemRow = $firstItem.closest('tr, .cart_item');
@@ -2149,11 +2461,15 @@ class WPDM_Customization {
 						
 						if (firstItemClasses.indexOf('wpdm-customized-global') !== -1) {
 							isGlobalMode = true;
+							hasCustomization = true;
 						} else if (firstItemClasses.indexOf('wpdm-customized-per-color') !== -1) {
 							isPerColorMode = true;
+							hasCustomization = true;
+						} else if (firstItemClasses.indexOf('wpdm-customized-item') !== -1) {
+							hasCustomization = true;
 						}
 						
-						console.log('[WPDM Cart] Modo detectado para producto', productId, '- Global:', isGlobalMode, 'Per-color:', isPerColorMode);
+						console.log('[WPDM Cart] Modo detectado para grupo', groupKey, '(productId:', productId, ') - Global:', isGlobalMode, 'Per-color:', isPerColorMode, 'Tiene personalización:', hasCustomization);
 						
 						// Obtener precio de personalización según el modo
 						var customizationPrice = '0,00 €';
@@ -2334,13 +2650,18 @@ class WPDM_Customization {
 							var price = $item.find('.product-price').text().trim();
 							$priceQtyRow.append($('<span style="color: #666; font-weight: 500;">').text(price));
 							
-							// Cantidad (más grande, sin el texto de "Cantidad fija") - extraer solo el contenido
+							// Cantidad - mostrar editable si NO tiene personalización, fija si tiene personalización
 							var $qtyCell = $item.find('.product-quantity');
 							var qtyValue = null;
-							
-							// Obtener el valor de cantidad primero
 							var $qtyInput = $qtyCell.find('input.qty, input[type="number"]');
 							var $qtySpan = $qtyCell.find('.wpdm-fixed-quantity, span.wpdm-fixed-quantity');
+							
+							// Verificar si esta variación específica tiene personalización
+							var $itemRow = $item.closest('tr, .cart_item');
+							var itemClasses = $itemRow.attr('class') || '';
+							var itemHasCustomization = itemClasses.indexOf('wpdm-customized-item') !== -1 || 
+							                            itemClasses.indexOf('wpdm-customized-global') !== -1 || 
+							                            itemClasses.indexOf('wpdm-customized-per-color') !== -1;
 							
 							if ($qtyInput.length) {
 								qtyValue = $qtyInput.val();
@@ -2355,10 +2676,46 @@ class WPDM_Customization {
 								}
 							}
 							
-							// Crear un span limpio con solo el número
+							// Mostrar cantidad: editable si NO tiene personalización, fija si tiene
 							if (qtyValue) {
-								var $qtyDisplay = $('<span class="wpdm-fixed-quantity" style="display: inline-block; padding: 4px 8px; background: #f0f0f0; border-radius: 4px; font-weight: 600; color: #333; font-size: 1em;">' + qtyValue + '</span>');
-								$priceQtyRow.append($('<div style="flex-shrink: 0;">').append($qtyDisplay));
+								if (itemHasCustomization || hasCustomization) {
+									// Producto personalizado: cantidad fija
+									var $qtyDisplay = $('<span class="wpdm-fixed-quantity" style="display: inline-block; padding: 4px 8px; background: #f0f0f0; border-radius: 4px; font-weight: 600; color: #333; font-size: 1em;">' + qtyValue + '</span>');
+									$priceQtyRow.append($('<div style="flex-shrink: 0;">').append($qtyDisplay));
+								} else {
+									// Producto sin personalización: cantidad editable
+									// Obtener el input original o crear uno nuevo
+									var $originalInput = $qtyCell.find('input.qty, input[type="number"]');
+									if ($originalInput.length) {
+										// Clonar el input original para mantener funcionalidad
+										var $editableQty = $originalInput.clone();
+										$editableQty.css({
+											'width': '50px',
+											'padding': '4px 6px',
+											'text-align': 'center',
+											'border': '1px solid #ddd',
+											'border-radius': '4px',
+											'font-size': '1em',
+											'font-weight': '600'
+										});
+										$priceQtyRow.append($('<div style="flex-shrink: 0;">').append($editableQty));
+									} else {
+										// Crear input nuevo si no existe
+										var $editableQty = $('<input type="number" class="qty" value="' + qtyValue + '" min="1" style="width: 50px; padding: 4px 6px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; font-weight: 600;">');
+										// Obtener cart_item_key para asociar el input
+										var $itemRemoveLink = $itemRow.find('a[href*="remove_item"]');
+										if ($itemRemoveLink.length) {
+											var href = $itemRemoveLink.attr('href') || '';
+											var match = href.match(/remove_item=([^&]+)/);
+											if (match) {
+												var cartItemKey = decodeURIComponent(match[1]);
+												$editableQty.attr('data-cart-item-key', cartItemKey);
+												$editableQty.attr('name', 'cart[' + cartItemKey + '][qty]');
+											}
+										}
+										$priceQtyRow.append($('<div style="flex-shrink: 0;">').append($editableQty));
+									}
+								}
 							}
 							
 							$infoContainer.append($priceQtyRow);
@@ -2417,7 +2774,8 @@ class WPDM_Customization {
 						
 						// Línea de personalización (global o per-color)
 						var $customizationRow = null;
-						var uniqueId = 'wpdm-group-details-' + productId;
+						// Usar groupKey para crear un ID único por cada grupo de personalización diferente
+						var uniqueId = 'wpdm-group-details-' + groupKey.replace(/[^a-zA-Z0-9]/g, '-');
 						
 						// Determinar precio y texto según el modo
 						var finalCustomizationPrice = '0,00 €';
@@ -2435,9 +2793,9 @@ class WPDM_Customization {
 							customizationLabel = 'Personalización GLOBAL';
 						}
 						
-						// Solo crear la sección de personalización si hay precio (producto tiene personalización)
+						// Solo crear la sección de personalización si hay personalización (precio > 0 Y hasCustomization)
 						var priceValue = parseFloat(finalCustomizationPrice.replace(/[^\d,.-]/g, '').replace(',', '.'));
-						if (!isNaN(priceValue) && priceValue > 0) {
+						if (hasCustomization && !isNaN(priceValue) && priceValue > 0) {
 							$customizationRow = $('<div class="wpdm-group-customization" style="padding: 10px 15px; background: #fff; border-top: 2px solid #0464AC;"></div>');
 							var $customizationHeader = $('<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px;"></div>');
 							$customizationHeader.append('<span style="font-weight: 600; color: #0464AC; font-size: 1em;">' + customizationLabel + ': <strong style="color: #0464AC;">' + finalCustomizationPrice + '</strong></span>');
@@ -2672,13 +3030,144 @@ class WPDM_Customization {
 							}
 						});
 						
-						console.log('[WPDM Cart] Grupo creado para producto ID:', productId, 'con', items.length, 'variaciones');
+						console.log('[WPDM Cart] Grupo creado para groupKey:', groupKey, '(productId:', productId, ') con', items.length, 'variaciones');
 						
 						// Marcar el contenedor de grupo como reorganizado
 						$groupContainer.data('wpdm-reorganized', true);
 					}
 				});
+				
+					// Procesar productos sin personalizar con la MISMA visualización agrupada
+				console.log('[WPDM Cart] 🎯 INICIANDO procesamiento de productos sin personalizar. Total grupos:', Object.keys(nonCustomizedGroups).length);
+				$.each(nonCustomizedGroups, function(productId, items) {
+					console.log('[WPDM Cart] 🎯 Procesando grupo sin personalizar - Product ID:', productId, 'Items:', items.length);
+					if (items.length >= 1) {
+						var $firstItem = items[0];
+						var $parentTable = $firstItem.closest('table, tbody');
+						
+						// Obtener nombre del producto (del primer item)
+						var productName = $firstItem.find('.product-name a').first().text().trim();
+						// Extraer solo el nombre del producto (antes del guión)
+						var match = productName.match(/^([^-]+)/);
+						if (match) {
+							productName = match[1].trim();
+						}
+						
+						// Crear contenedor de grupo (MISMA estructura que productos personalizados)
+						var $groupContainer = $('<tr class="wpdm-product-group-container" data-product-id="' + productId + '"></tr>');
+						var $groupCell = $('<td colspan="6" style="padding: 0 !important; border: none !important;"></td>');
+						
+						// Contenedor interno (borde verde para diferenciar)
+						var $groupInner = $('<div class="wpdm-product-group-wrapper" style="border: 3px solid #28a745; border-radius: 8px; margin: 15px 0; background: #f8fff9; overflow: visible; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);"></div>');
+						
+						// Header con nombre del producto y botón eliminar (mismo estilo)
+						var $groupHeader = $('<div class="wpdm-group-header" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: #fff; padding: 10px 15px; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between;"></div>');
+						$groupHeader.append('<span>📦 ' + productName + '</span>');
+						
+						// Botón eliminar todo el grupo
+						var $deleteAllBtn = $('<button type="button" class="wpdm-delete-all-variations" data-product-id="' + productId + '" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: all 0.2s;">Eliminar ✕</button>');
+						$deleteAllBtn.hover(
+							function() { $(this).css({'background': 'rgba(255,255,255,0.3)', 'border-color': 'rgba(255,255,255,0.5)'}); },
+							function() { $(this).css({'background': 'rgba(255,255,255,0.2)', 'border-color': 'rgba(255,255,255,0.3)'}); }
+						);
+						$groupHeader.append($deleteAllBtn);
+						
+						// Contenedor de variaciones (layout de tres columnas - MISMO que personalizados)
+						var $variationsContainer = $('<div class="wpdm-variations-list" style="background: #fff; padding: 8px;"></div>');
+						var $variationsGrid = $('<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>');
+						
+						// Mover todas las variaciones al contenedor (tres columnas)
+						items.forEach(function($item, index) {
+							var $itemRow = $item.closest('tr, .cart_item');
+							var $variationCard = $('<div class="wpdm-variation-card" style="display: flex; align-items: center; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff; transition: all 0.2s; gap: 8px;"></div>');
+							
+							// Hover effect
+							$variationCard.hover(
+								function() { $(this).css({'background': '#f9f9f9', 'border-color': '#28a745'}); },
+								function() { $(this).css({'background': '#fff', 'border-color': '#e0e0e0'}); }
+							);
+							
+							// Thumbnail
+							var $thumbCell = $item.find('.product-thumbnail');
+							var $thumbContent = $thumbCell.length ? $thumbCell.html() : '';
+							if ($thumbContent) {
+								var $thumbWrapper = $('<div style="flex-shrink: 0;"></div>');
+								$thumbWrapper.html($thumbContent);
+								$thumbWrapper.find('img').css({'width': '40px', 'height': '40px', 'object-fit': 'cover', 'border-radius': '3px'});
+								$variationCard.append($thumbWrapper);
+							}
+							
+							// Contenedor de información
+							var $infoContainer = $('<div style="flex: 1; min-width: 0;"></div>');
+							
+							// Nombre de variación (limpiar enlaces)
+							var variationName = $item.find('.product-name a').text().trim();
+							variationName = variationName.replace(/Ver\s*archivo\s*→/gi, '');
+							variationName = variationName.replace(/Ver\s*archivo/gi, '');
+							variationName = variationName.replace(/→/g, '');
+							variationName = variationName.replace(/\s+/g, ' ').trim();
+							$infoContainer.append($('<div style="font-weight: 500; color: #333; font-size: 0.9em; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + variationName + '">').text(variationName));
+							
+							// Precio y cantidad en línea
+							var $priceQtyRow = $('<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.95em;"></div>');
+							
+							// Precio
+							var price = $item.find('.product-price').text().trim();
+							$priceQtyRow.append($('<span style="color: #666; font-weight: 500;">').text(price));
+							
+							// Cantidad SOLO LECTURA (productos sin personalizar - deshabilitada)
+							var $qtyCell = $item.find('.product-quantity');
+							var $qtyInput = $qtyCell.find('input.qty, input[type="number"]');
+							if ($qtyInput.length) {
+								var qtyValue = $qtyInput.val();
+								
+								// Mostrar cantidad como texto (no editable)
+								var $qtyDisplay = $('<span style="color: #666; font-weight: 600; font-size: 1em; padding: 4px 8px; background: #f5f5f5; border-radius: 4px; display: inline-block; min-width: 40px; text-align: center;">' + qtyValue + '</span>');
+								$priceQtyRow.append($('<div style="flex-shrink: 0;">').append($qtyDisplay));
+							}
+							
+							$infoContainer.append($priceQtyRow);
+							
+							// Total
+							var total = $item.find('.product-subtotal').text().trim();
+							$infoContainer.append($('<div style="font-weight: 600; color: #28a745; font-size: 1em; margin-top: 3px; text-align: right; padding-top: 3px; border-top: 1px solid #e0e0e0;">').text(total));
+							
+							$variationCard.append($infoContainer);
+							$variationsGrid.append($variationCard);
+						});
+						
+						$variationsContainer.append($variationsGrid);
+						
+						// Ensamblar grupo (SIN sección de personalización)
+						$groupInner.append($groupHeader);
+						$groupInner.append($variationsContainer);
+						$groupCell.append($groupInner);
+						$groupContainer.append($groupCell);
+						
+						// Insertar antes del primer item y ocultar items originales
+						$firstItem.before($groupContainer);
+						items.forEach(function($item) {
+							var $row = $item.closest('tr, .cart_item');
+							if ($row.length) {
+								$row.hide();
+							} else {
+								$item.hide();
+							}
+							$item.data('wpdm-reorganized', true);
+							if ($row.length && $row[0] !== $item[0]) {
+								$row.data('wpdm-reorganized', true);
+							}
+						});
+						
+						console.log('[WPDM Cart] Grupo sin personalizar creado para producto ID:', productId, 'con', items.length, 'variaciones');
+						$groupContainer.data('wpdm-reorganized', true);
+					}
+				});
+				} // Fin de processCustomizedGroups()
 			}
+			
+			// NOTA: La edición de cantidad está deshabilitada para productos sin personalizar.
+			// Si el cliente desea cambiar la cantidad, debe eliminar el producto y volver a añadirlo.
 			
 			// Botón eliminar todas las variaciones del grupo
 			$(document).on('click', '.wpdm-delete-all-variations', function(e) {
