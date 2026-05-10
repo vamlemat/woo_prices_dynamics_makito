@@ -197,7 +197,17 @@ class WPDM_Customization_Frontend {
 			return true;
 		}
 
-		return isset( $wp_query->query_vars['personalizar'] );
+		// Verificar por URL directamente
+		if ( isset( $wp_query->query_vars['personalizar'] ) ) {
+			return true;
+		}
+
+		// Fallback: verificar si la URL contiene /personalizar/
+		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
+			return strpos( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ), '/personalizar' ) !== false;
+		}
+
+		return false;
 	}
 
 	/**
@@ -207,6 +217,8 @@ class WPDM_Customization_Frontend {
 		if ( self::is_customization_page() && is_singular( 'product' ) ) {
 			$custom_template = plugin_dir_path( __FILE__ ) . 'templates/customization-page.php';
 			if ( file_exists( $custom_template ) ) {
+				// Log de debug
+				error_log( 'WPDM: Cargando plantilla de personalización: ' . $custom_template );
 				return $custom_template;
 			}
 		}
@@ -477,14 +489,36 @@ class WPDM_Customization_Frontend {
 		?>
 		<!-- WPDM Customization: Definir objeto ANTES del modal -->
 		<script type="text/javascript">
-		console.log('%c=== WPDM: Definiendo wpdmCustomization ===', 'background: #0073aa; color: #fff; font-size: 14px; padding: 5px;');
+		console.log('%c=== WPDM: Inicializando módulo de personalización ===', 'background: #0073aa; color: #fff; font-size: 14px; padding: 5px;');
 		window.wpdmCustomization = <?php echo wp_json_encode( $localize_data ); ?>;
 		console.log('wpdmCustomization definido:', window.wpdmCustomization);
-		console.log('ajax_url:', window.wpdmCustomization.ajax_url);
+		console.log('¿Es página de personalización?', window.wpdmCustomization.is_customization_page);
+		
+		// Forzar detección por URL
+		var isCustomizationPageByURL = window.location.pathname.indexOf('/personalizar') !== -1;
+		console.log('¿Personalizar en URL?', isCustomizationPageByURL);
 
 		// Verificar si el archivo JS se cargó
 		jQuery(document).ready(function($) {
-			console.log('%c[WPDM] Verificando carga del script...', 'background: #ff9900; color: #fff; font-weight: bold;');
+			console.log('%c[WPDM] jQuery ready ejecutado', 'background: #ff9900; color: #fff; font-weight: bold;');
+			
+			// Forzar detección y setup de página de personalización
+			var isPageMode = window.wpdmCustomization && window.wpdmCustomization.is_customization_page;
+			console.log('[WPDM] Modo página detectado:', isPageMode);
+			
+			if ( isPageMode || isCustomizationPageByURL ) {
+				console.log('%c[WPDM] FORZANDO MODO PÁGINA DE PERSONALIZACIÓN', 'background: #00aa00; color: #fff; font-weight: bold;');
+				$('body').addClass('wpdm-customization-page-open');
+				console.log('[WPDM] Clase wpdm-customization-page-open agregada al body');
+				
+				var $modal = $('#wpdm-customization-modal');
+				console.log('[WPDM] Modal encontrado:', $modal.length > 0);
+				
+				if ( $modal.length > 0 ) {
+					$modal.show();
+					console.log('[WPDM] Modal mostrado');
+				}
+			}
 			
 			// Si el archivo JS no se cargó, añadir el event listener aquí mismo
 			if ($('.wpdm-add-customized-to-cart').length > 0) {
