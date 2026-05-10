@@ -25,11 +25,16 @@
 
 			// Ir a vista de personalización en página cuando se hace clic en el botón
 			$(document).on('click', '.wpdm-add-customized-to-cart', function(e) {
-				e.preventDefault();
-				console.log('WPDM Customization: Botón clickeado');
-				self.productId = $(this).data('product-id') || self.productId;
-				console.log('WPDM Customization: Product ID:', self.productId);
-				self.openCustomizationPageUrl();
+				var $button = $(this);
+				var url = $button.data('customization-url');
+
+				if ( url ) {
+					e.preventDefault();
+					console.log('WPDM Customization: Botón clickeado');
+					self.productId = $button.data('product-id') || self.productId;
+					console.log('WPDM Customization: Product ID:', self.productId);
+					self.openCustomizationPageUrl( url );
+				}
 			});
 
 			// Cerrar modal
@@ -103,14 +108,19 @@
 			this.loadCustomizationData();
 		},
 
-		openCustomizationPageUrl: function() {
-			var url = new URL(window.location.href);
-			url.searchParams.set('wpdm_customization', '1');
-			window.location.href = url.toString();
+		openCustomizationPageUrl: function( url ) {
+			if ( ! url ) {
+				url = window.wpdmCustomization && window.wpdmCustomization.customization_page_url ? window.wpdmCustomization.customization_page_url : window.location.href;
+			}
+			window.location.href = url;
 		},
 
 		isCustomizationPage: function() {
-			return new URLSearchParams(window.location.search).get('wpdm_customization') === '1';
+			if ( window.wpdmCustomization && window.wpdmCustomization.is_customization_page ) {
+				return true;
+			}
+			var params = new URLSearchParams(window.location.search);
+			return params.get('wpdm_personalizar') === '1' || params.get('wpdm_customization') === '1';
 		},
 
 		getProductIdFromPage: function() {
@@ -162,6 +172,7 @@
 
 			if ( this.isCustomizationPage() && window.history && window.history.replaceState ) {
 				var url = new URL(window.location.href);
+				url.searchParams.delete('wpdm_personalizar');
 				url.searchParams.delete('wpdm_customization');
 				window.history.replaceState({}, '', url.toString());
 			}

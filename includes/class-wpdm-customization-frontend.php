@@ -189,22 +189,17 @@ class WPDM_Customization_Frontend {
 
 	/**
 	 * Verificar si estamos en la página de personalización.
+	 * Usa query parameter ?wpdm_personalizar=1 para máxima compatibilidad.
 	 */
 	public static function is_customization_page() {
-		global $wp_query;
+		// Parámetro principal: ?wpdm_personalizar=1
+		if ( isset( $_GET['wpdm_personalizar'] ) && '1' === $_GET['wpdm_personalizar'] ) {
+			return true;
+		}
 
+		// Compatibilidad hacia atrás con el parámetro antiguo
 		if ( isset( $_GET['wpdm_customization'] ) && '1' === $_GET['wpdm_customization'] ) {
 			return true;
-		}
-
-		// Verificar por URL directamente
-		if ( isset( $wp_query->query_vars['personalizar'] ) ) {
-			return true;
-		}
-
-		// Fallback: verificar si la URL contiene /personalizar/
-		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
-			return strpos( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ), '/personalizar' ) !== false;
 		}
 
 		return false;
@@ -212,13 +207,12 @@ class WPDM_Customization_Frontend {
 
 	/**
 	 * Cargar plantilla personalizada cuando estamos en la página de personalizar.
+	 * Se activa con ?wpdm_personalizar=1 en cualquier página de producto.
 	 */
 	public static function maybe_load_customization_template( $template ) {
 		if ( self::is_customization_page() && is_singular( 'product' ) ) {
 			$custom_template = plugin_dir_path( __FILE__ ) . 'templates/customization-page.php';
 			if ( file_exists( $custom_template ) ) {
-				// Log de debug
-				error_log( 'WPDM: Cargando plantilla de personalización: ' . $custom_template );
 				return $custom_template;
 			}
 		}
@@ -239,6 +233,7 @@ class WPDM_Customization_Frontend {
 
 	/**
 	 * Generar URL de personalización para el producto.
+	 * Usa ?wpdm_personalizar=1 como parámetro (no endpoint de rewrite).
 	 */
 	public static function get_customization_page_url( $product_id ) {
 		$product_id = absint( $product_id );
@@ -246,22 +241,7 @@ class WPDM_Customization_Frontend {
 			return '#';
 		}
 
-		$url = trailingslashit( get_permalink( $product_id ) ) . 'personalizar/';
-		$allowed_query_args = array();
-
-		foreach ( $_GET as $key => $value ) {
-			if ( strpos( $key, 'attribute_pa_' ) === 0 || 'variation_id' === $key ) {
-				if ( is_array( $value ) ) {
-					$allowed_query_args[ sanitize_text_field( $key ) ] = array_map( 'sanitize_text_field', $value );
-				} else {
-					$allowed_query_args[ sanitize_text_field( $key ) ] = sanitize_text_field( $value );
-				}
-			}
-		}
-
-		if ( ! empty( $allowed_query_args ) ) {
-			$url = add_query_arg( $allowed_query_args, $url );
-		}
+		$url = add_query_arg( 'wpdm_personalizar', '1', get_permalink( $product_id ) );
 
 		return $url;
 	}
@@ -495,8 +475,8 @@ class WPDM_Customization_Frontend {
 		console.log('¿Es página de personalización?', window.wpdmCustomization.is_customization_page);
 		
 		// Forzar detección por URL
-		var isCustomizationPageByURL = window.location.pathname.indexOf('/personalizar') !== -1;
-		console.log('¿Personalizar en URL?', isCustomizationPageByURL);
+		var isCustomizationPageByURL = new URLSearchParams(window.location.search).get('wpdm_personalizar') === '1';
+		console.log('¿wpdm_personalizar en URL?', isCustomizationPageByURL);
 
 		// Verificar si el archivo JS se cargó
 		jQuery(document).ready(function($) {
