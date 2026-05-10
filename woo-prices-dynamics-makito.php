@@ -3,7 +3,7 @@
  * Plugin Name:       Woo Prices Dynamics Makito
  * Plugin URI:        https://github.com/vamlemat/publicmar-estructura
  * Description:       Aplica precios por tramos (price_tiers) a productos WooCommerce y al carrito, usando datos sincronizados desde un panel externo (Makito y otros).
- * Version:           3.7.4
+ * Version:           3.7.5
  * Author:            atech / vamlemat
  * Text Domain:       woo-prices-dynamics-makito
  * Requires at least: 5.0
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Definir constantes básicas del plugin.
 if ( ! defined( 'WPDM_WOOPRICES_VERSION' ) ) {
-	define( 'WPDM_WOOPRICES_VERSION', '3.7.4' );
+	define( 'WPDM_WOOPRICES_VERSION', '3.7.5' );
 }
 
 if ( ! defined( 'WPDM_WOOPRICES_PLUGIN_FILE' ) ) {
@@ -42,6 +42,15 @@ require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-variation-table.ph
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization-frontend.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization-images-admin.php';
+
+/**
+ * Flush rewrite rules en la activación del plugin.
+ */
+function wpdm_wooprices_activate() {
+	WPDM_Customization_Frontend::register_customization_endpoint();
+	flush_rewrite_rules();
+}
+register_activation_hook( WPDM_WOOPRICES_PLUGIN_FILE, 'wpdm_wooprices_activate' );
 
 /**
  * Declarar compatibilidad con características de WooCommerce.

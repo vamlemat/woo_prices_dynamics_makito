@@ -5,6 +5,28 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.7.5] - 2026-05-10
+
+### 🧭 Página de personalización dedicada para productos
+
+**Nuevas mejoras:**
+
+- ✅ Se añade una URL de personalización del producto con endpoint `personalizar`
+- ✅ El botón `Añadir con personalización` redirige a `/producto/<slug>/personalizar/`
+- ✅ Se carga una plantilla amigable de personalización en página completa
+- ✅ El cliente puede completar toda la personalización antes de añadir al carrito
+- ✅ Se mantienen los atributos de variación (`attribute_pa_*`) y `variation_id` en la URL
+- ✅ Se crea la plantilla `includes/templates/customization-page.php`
+- ✅ Se añade flush de rewrite rules en la activación del plugin para habilitar el endpoint
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php`
+- `assets/js/wpdm-customization.js`
+- `woo-prices-dynamics-makito.php` (v3.7.5)
+- `includes/templates/customization-page.php`
+
+---
+
 ## [3.7.4] - 2025-01-XX
 
 ### 🎯 Separación inteligente de productos con diferentes personalizaciones
