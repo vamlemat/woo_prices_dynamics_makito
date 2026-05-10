@@ -444,11 +444,13 @@ class WPDM_Variation_Table {
 				<?php
 				// Añadir botón de personalización si la clase existe
 				if ( class_exists( 'WPDM_Customization_Frontend' ) ) {
+					$customization_url = WPDM_Customization_Frontend::get_customization_page_url( $product->get_id() );
 					?>
 					<button 
 						type="button" 
 						class="wpdm-add-customized-to-cart button alt" 
 						data-product-id="<?php echo esc_attr( $product->get_id() ); ?>"
+						data-customization-url="<?php echo esc_url( $customization_url ); ?>"
 						disabled
 					>
 						<?php esc_html_e( 'Añadir con personalización', 'woo-prices-dynamics-makito' ); ?>

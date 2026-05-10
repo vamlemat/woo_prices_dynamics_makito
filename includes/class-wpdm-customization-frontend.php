@@ -19,6 +19,11 @@ class WPDM_Customization_Frontend {
 		// Añadir botón de personalización después del botón estándar (para productos simples o cuando no hay tabla)
 		add_action( 'woocommerce_single_product_summary', array( __CLASS__, 'add_customization_button' ), 31 );
 		
+		add_action( 'init', array( __CLASS__, 'register_customization_endpoint' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_flush_rewrite_rules' ), 20 );
+		add_filter( 'query_vars', array( __CLASS__, 'add_customization_query_var' ) );
+		add_filter( 'template_include', array( __CLASS__, 'maybe_load_customization_template' ) );
+		add_filter( 'body_class', array( __CLASS__, 'add_customization_body_class' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'output_customization_modal' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
 		
@@ -158,6 +163,98 @@ class WPDM_Customization_Frontend {
 	}
 
 	/**
+	 * Registrar endpoint para personalización en la URL del producto.
+	 */
+	public static function register_customization_endpoint() {
+		add_rewrite_endpoint( 'personalizar', EP_PERMALINK | EP_PAGES );
+	}
+
+	/**
+	 * Flush rewrite rules una sola vez si es necesario.
+	 */
+	public static function maybe_flush_rewrite_rules() {
+		if ( ! get_option( 'wpdm_customization_rewrite_flushed', false ) ) {
+			flush_rewrite_rules();
+			update_option( 'wpdm_customization_rewrite_flushed', true );
+		}
+	}
+
+	/**
+	 * Agregar query var para personalización.
+	 */
+	public static function add_customization_query_var( $vars ) {
+		$vars[] = 'personalizar';
+		return $vars;
+	}
+
+	/**
+	 * Verificar si estamos en la página de personalización.
+	 */
+	public static function is_customization_page() {
+		global $wp_query;
+
+		if ( isset( $_GET['wpdm_customization'] ) && '1' === $_GET['wpdm_customization'] ) {
+			return true;
+		}
+
+		return isset( $wp_query->query_vars['personalizar'] );
+	}
+
+	/**
+	 * Cargar plantilla personalizada cuando estamos en la página de personalizar.
+	 */
+	public static function maybe_load_customization_template( $template ) {
+		if ( self::is_customization_page() && is_singular( 'product' ) ) {
+			$custom_template = plugin_dir_path( __FILE__ ) . 'templates/customization-page.php';
+			if ( file_exists( $custom_template ) ) {
+				return $custom_template;
+			}
+		}
+
+		return $template;
+	}
+
+	/**
+	 * Agregar clase al body cuando se muestra la página de personalización.
+	 */
+	public static function add_customization_body_class( $classes ) {
+		if ( self::is_customization_page() && is_singular( 'product' ) ) {
+			$classes[] = 'wpdm-customization-page';
+		}
+
+		return $classes;
+	}
+
+	/**
+	 * Generar URL de personalización para el producto.
+	 */
+	public static function get_customization_page_url( $product_id ) {
+		$product_id = absint( $product_id );
+		if ( $product_id <= 0 ) {
+			return '#';
+		}
+
+		$url = trailingslashit( get_permalink( $product_id ) ) . 'personalizar/';
+		$allowed_query_args = array();
+
+		foreach ( $_GET as $key => $value ) {
+			if ( strpos( $key, 'attribute_pa_' ) === 0 || 'variation_id' === $key ) {
+				if ( is_array( $value ) ) {
+					$allowed_query_args[ sanitize_text_field( $key ) ] = array_map( 'sanitize_text_field', $value );
+				} else {
+					$allowed_query_args[ sanitize_text_field( $key ) ] = sanitize_text_field( $value );
+				}
+			}
+		}
+
+		if ( ! empty( $allowed_query_args ) ) {
+			$url = add_query_arg( $allowed_query_args, $url );
+		}
+
+		return $url;
+	}
+
+	/**
 	 * Cambiar el texto del botón "Añadir al carrito" estándar.
 	 */
 	public static function change_add_to_cart_text( $text, $product ) {
@@ -208,6 +305,8 @@ class WPDM_Customization_Frontend {
 		// Log completo
 		self::log_debug( $debug_info );
 
+		$customization_url = self::get_customization_page_url( $product_id );
+
 		// Panel de debug para administradores
 		if ( current_user_can( 'manage_options' ) ) {
 			$raw_meta = get_post_meta( $product_id, 'marking_areas', true );
@@ -238,13 +337,14 @@ class WPDM_Customization_Frontend {
 
 		?>
 		<div class="wpdm-customization-button-wrapper" style="margin-top: 1em;">
-			<button 
-				type="button" 
-				class="button wpdm-add-customized-to-cart" 
+			<a
+				href="<?php echo esc_url( $customization_url ); ?>"
+				class="button wpdm-add-customized-to-cart"
 				data-product-id="<?php echo esc_attr( $product_id ); ?>"
+				data-customization-url="<?php echo esc_url( $customization_url ); ?>"
 			>
 				<?php esc_html_e( 'Añadir con personalización', 'woo-prices-dynamics-makito' ); ?>
-			</button>
+			</a>
 		</div>
 		<script>
 		console.log('WPDM: Botón de personalización renderizado. Product ID:', <?php echo esc_js( $product_id ); ?>);
@@ -333,6 +433,8 @@ class WPDM_Customization_Frontend {
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'wpdm_customization_nonce' ),
 			'product_id' => $product->get_id(),
+			'is_customization_page' => self::is_customization_page(),
+			'customization_page_url' => self::get_customization_page_url( $product->get_id() ),
 			'currency_symbol' => get_woocommerce_currency_symbol(),
 			'currency_pos' => get_option( 'woocommerce_currency_pos', 'right' ),
 			'price_decimals' => wc_get_price_decimals(),
@@ -389,6 +491,12 @@ class WPDM_Customization_Frontend {
 				console.log('[WPDM] Botón encontrado, añadiendo event listener inline');
 				
 				$(document).on('click', '.wpdm-add-customized-to-cart', function(e) {
+					var customizationUrl = $(this).data('customization-url');
+					if ( customizationUrl ) {
+						console.log('[WPDM] Se detectó URL de personalización, redirigiendo a la página:', customizationUrl);
+						window.location.href = customizationUrl;
+						return;
+					}
 					e.preventDefault();
 					console.log('%c[WPDM] ¡BOTÓN CLICKEADO!', 'background: #00ff00; color: #000; font-size: 16px; padding: 5px;');
 					
