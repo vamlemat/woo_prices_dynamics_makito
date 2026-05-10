@@ -5,6 +5,22 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.7.6] - 2026-05-10
+
+### 🔧 Corrección del botón de personalización
+
+**Fixes:**
+
+- ✅ El botón "Añadir con personalización" ahora redirige correctamente a la página `/personalizar/`
+- ✅ Se fuerza redirección cuando se detecta `data-customization-url` en el atributo del botón
+- ✅ La interfaz completa de personalización se abre en página completa en lugar de popup modal
+
+**Archivos corregidos:**
+- `includes/class-wpdm-customization-frontend.php` (handler de evento click)
+- `includes/class-wpdm-variation-table.php` (atributo data-customization-url)
+
+---
+
 ## [3.7.5] - 2026-05-10
 
 ### 🧭 Página de personalización dedicada para productos
