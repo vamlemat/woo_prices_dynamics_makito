@@ -16,19 +16,20 @@
 		init: function() {
 			console.log('WPDM Customization: Inicializando...');
 			this.bindEvents();
+			this.checkCustomizationPage();
 			console.log('WPDM Customization: Eventos enlazados');
 		},
 
 		bindEvents: function() {
 			var self = this;
 
-			// Abrir modal al hacer clic en botón "Añadir al carrito personalizado"
+			// Ir a vista de personalización en página cuando se hace clic en el botón
 			$(document).on('click', '.wpdm-add-customized-to-cart', function(e) {
 				e.preventDefault();
 				console.log('WPDM Customization: Botón clickeado');
-				self.productId = $(this).data('product-id');
+				self.productId = $(this).data('product-id') || self.productId;
 				console.log('WPDM Customization: Product ID:', self.productId);
-				self.openModal();
+				self.openCustomizationPageUrl();
 			});
 
 			// Cerrar modal
@@ -102,10 +103,67 @@
 			this.loadCustomizationData();
 		},
 
+		openCustomizationPageUrl: function() {
+			var url = new URL(window.location.href);
+			url.searchParams.set('wpdm_customization', '1');
+			window.location.href = url.toString();
+		},
+
+		isCustomizationPage: function() {
+			return new URLSearchParams(window.location.search).get('wpdm_customization') === '1';
+		},
+
+		getProductIdFromPage: function() {
+			if ( typeof wpdmCustomization !== 'undefined' && wpdmCustomization.product_id ) {
+				return parseInt( wpdmCustomization.product_id, 10 );
+			}
+
+			return null;
+		},
+
+		checkCustomizationPage: function() {
+			if ( this.isCustomizationPage() ) {
+				this.productId = this.getProductIdFromPage() || this.productId;
+				this.openPage();
+			}
+		},
+
+		openPage: function() {
+			var self = this;
+			console.log('WPDM Customization: Abriendo vista de personalización en página...');
+			this.modal = $('#wpdm-customization-modal');
+
+			if ( this.modal.length === 0 ) {
+				console.error('WPDM Customization: Modal no encontrado en el DOM');
+				alert('Error: El modal de personalización no se encontró. Por favor, recarga la página.');
+				return;
+			}
+
+			if ( ! this.productId ) {
+				this.productId = this.getProductIdFromPage();
+			}
+
+			if ( ! this.productId ) {
+				console.error('WPDM Customization: Product ID inválido para la vista de personalización');
+				return;
+			}
+
+			$('body').addClass('wpdm-modal-open wpdm-customization-page-open');
+			this.modal.show();
+			window.scrollTo(0, 0);
+			this.loadCustomizationData();
+		},
+
 		closeModal: function() {
-			if (this.modal) {
+			if ( this.modal ) {
 				this.modal.fadeOut(300);
-				$('body').removeClass('wpdm-modal-open');
+				$('body').removeClass('wpdm-modal-open wpdm-customization-page-open');
+			}
+
+			if ( this.isCustomizationPage() && window.history && window.history.replaceState ) {
+				var url = new URL(window.location.href);
+				url.searchParams.delete('wpdm_customization');
+				window.history.replaceState({}, '', url.toString());
 			}
 		},
 

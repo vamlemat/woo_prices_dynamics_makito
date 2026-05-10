@@ -332,6 +332,7 @@ class WPDM_Customization_Frontend {
 		$localize_data = array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'wpdm_customization_nonce' ),
+			'product_id' => $product->get_id(),
 			'currency_symbol' => get_woocommerce_currency_symbol(),
 			'currency_pos' => get_option( 'woocommerce_currency_pos', 'right' ),
 			'price_decimals' => wc_get_price_decimals(),
@@ -1979,6 +1980,47 @@ class WPDM_Customization_Frontend {
 		}
 		body.wpdm-modal-open {
 			overflow: hidden !important;
+		}
+		body.wpdm-customization-page-open {
+			overflow: hidden !important;
+		}
+		body.wpdm-customization-page-open #wpdm-customization-modal {
+			display: block !important;
+			position: fixed !important;
+			top: 0 !important;
+			left: 0 !important;
+			right: 0 !important;
+			bottom: 0 !important;
+			width: 100% !important;
+			height: 100% !important;
+			min-height: 100vh !important;
+			background: #ffffff !important;
+			padding: 0 !important;
+			margin: 0 !important;
+			z-index: 999999 !important;
+			overflow: auto !important;
+		}
+		body.wpdm-customization-page-open #wpdm-customization-modal .wpdm-customization-modal-overlay {
+			display: none !important;
+		}
+		body.wpdm-customization-page-open #wpdm-customization-modal .wpdm-customization-modal-content {
+			border-radius: 0 !important;
+			max-width: none !important;
+			width: 100% !important;
+			height: auto !important;
+			min-height: 100vh !important;
+			margin: 0 !important;
+			box-shadow: none !important;
+			padding: 20px !important;
+		}
+		body.wpdm-customization-page-open #wpdm-customization-modal .wpdm-customization-modal-header {
+			position: sticky;
+			top: 0;
+			z-index: 10;
+			background: #ffffff;
+		}
+		body.wpdm-customization-page-open #wpdm-customization-modal .wpdm-customization-modal-body {
+			padding-bottom: 80px !important;
 		}
 		</style>
 
