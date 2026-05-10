@@ -120,6 +120,11 @@ class WPDM_Customization_Frontend {
 			return;
 		}
 
+		// No ejecutar en la página de personalización autónoma
+		if ( self::is_customization_page() ) {
+			return;
+		}
+
 		?>
 		<script>
 		console.log('%c[WPDM DEBUG] Script inline ejecutándose', 'background: #222; color: #bada55; font-weight: bold;');
@@ -411,6 +416,12 @@ class WPDM_Customization_Frontend {
 	 */
 	public static function output_customization_modal() {
 		if ( ! is_product() ) {
+			return;
+		}
+
+		// La nueva plantilla autónoma maneja todo cuando ?wpdm_personalizar=1
+		// No inyectar el modal antiguo para evitar que cubra el contenido de la plantilla
+		if ( self::is_customization_page() ) {
 			return;
 		}
 
