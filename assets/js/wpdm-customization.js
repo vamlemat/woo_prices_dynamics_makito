@@ -26,14 +26,15 @@
 			// Ir a vista de personalización en página cuando se hace clic en el botón
 			$(document).on('click', '.wpdm-add-customized-to-cart', function(e) {
 				var $button = $(this);
-				var url = $button.data('customization-url');
+				var url = $button.data('customization-url') || $button.attr('href');
 
-				if ( url ) {
+				console.log('WPDM: Click en botón personalización. URL:', url);
+
+				if ( url && url !== '#' ) {
 					e.preventDefault();
-					console.log('WPDM Customization: Botón clickeado');
-					self.productId = $button.data('product-id') || self.productId;
-					console.log('WPDM Customization: Product ID:', self.productId);
-					self.openCustomizationPageUrl( url );
+					e.stopPropagation(); // Evitar que WooCommerce u otros plugins intercepten
+					console.log('WPDM: Redirigiendo a:', url);
+					window.location.href = url;
 				}
 			});
 

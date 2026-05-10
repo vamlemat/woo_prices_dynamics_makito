@@ -336,15 +336,16 @@ class WPDM_Customization_Frontend {
 		<div class="wpdm-customization-button-wrapper" style="margin-top: 1em;">
 			<a
 				href="<?php echo esc_url( $customization_url ); ?>"
-				class="button wpdm-add-customized-to-cart"
+				class="wpdm-btn-personalizar wpdm-add-customized-to-cart"
 				data-product-id="<?php echo esc_attr( $product_id ); ?>"
 				data-customization-url="<?php echo esc_url( $customization_url ); ?>"
+				style="display:inline-block;padding:12px 28px;background:#0073aa;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;cursor:pointer;"
 			>
 				<?php esc_html_e( 'Añadir con personalización', 'woo-prices-dynamics-makito' ); ?>
 			</a>
 		</div>
 		<script>
-		console.log('WPDM: Botón de personalización renderizado. Product ID:', <?php echo esc_js( $product_id ); ?>);
+		console.log('WPDM: Botón de personalización renderizado. URL:', '<?php echo esc_js( $customization_url ); ?>');
 		</script>
 		<?php
 	}
