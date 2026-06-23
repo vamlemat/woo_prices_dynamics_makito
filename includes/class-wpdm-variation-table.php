@@ -285,8 +285,6 @@ class WPDM_Variation_Table {
 		ob_start();
 		?>
 		<div class="wpdm-variation-table-wrapper">
-			<h3 class="wpdm-variation-table-title"><?php echo esc_html( sprintf( __( 'Selecciona cantidades (%s x %s)', 'woo-prices-dynamics-makito' ), $row_label, $col_label ) ); ?></h3>
-			
 			<div class="wpdm-variation-table-container">
 				<table class="wpdm-variation-table">
 					<thead>
@@ -529,7 +527,7 @@ class WPDM_Variation_Table {
 				font-size: 0.9em;
 				color: var(--wpdm-color-white);
 				text-transform: uppercase;
-				letter-spacing: 0.5px;
+				letter-spacing: 0;
 				border-right: 1px solid rgba(255, 255, 255, 0.2);
 			}
 			
@@ -2156,6 +2154,4 @@ class WPDM_Variation_Table {
 		) );
 	}
 }
-
-
 

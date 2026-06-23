@@ -584,80 +584,106 @@ class WPDM_Frontend {
 		ob_start();
 		?>
 		<div class="wpdm-price-tiers">
-			<h3 class="wpdm-price-tiers__title"><?php esc_html_e( 'Precios por cantidad', 'woo-prices-dynamics-makito' ); ?></h3>
-			<table class="wpdm-price-tiers__table">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Cantidad', 'woo-prices-dynamics-makito' ); ?></th>
-						<th><?php esc_html_e( 'Precio unidad', 'woo-prices-dynamics-makito' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-				<?php foreach ( $tiers as $tier ) : ?>
-					<?php
-					$from = isset( $tier['qty_from'] ) ? (int) $tier['qty_from'] : 0;
-					$to   = isset( $tier['qty_to'] ) ? (int) $tier['qty_to'] : 0;
+				<div class="wpdm-price-tiers__band" role="table" aria-label="<?php esc_attr_e( 'Precios por cantidad', 'woo-prices-dynamics-makito' ); ?>">
+					<?php foreach ( $tiers as $index => $tier ) : ?>
+						<?php
+						$from = isset( $tier['qty_from'] ) ? (int) $tier['qty_from'] : 0;
+						$to   = isset( $tier['qty_to'] ) ? (int) $tier['qty_to'] : 0;
 
-					if ( 0 === $to ) {
-						$range_text = sprintf(
-							/* translators: %d: minimum quantity */
-							esc_html__( '%d+', 'woo-prices-dynamics-makito' ),
-							$from
-						);
-					} elseif ( 0 === $from ) {
-						$range_text = sprintf(
-							/* translators: %d: maximum quantity */
-							esc_html__( 'Hasta %d', 'woo-prices-dynamics-makito' ),
-							$to
-						);
-					} else {
-						$range_text = sprintf(
-							/* translators: 1: minimum quantity, 2: maximum quantity */
-							esc_html__( '%1$d – %2$d', 'woo-prices-dynamics-makito' ),
-							$from,
-							$to
-						);
+						if ( 0 === $index && $to > 0 ) {
+							$range_text = sprintf(
+								/* translators: %s: maximum quantity */
+								esc_html__( '- %s', 'woo-prices-dynamics-makito' ),
+								number_format_i18n( $to, 0 )
+							);
+						} else {
+							$previous_to = isset( $tiers[ $index - 1 ]['qty_to'] ) ? (int) $tiers[ $index - 1 ]['qty_to'] : 0;
+							$threshold   = $previous_to > 0 ? $previous_to : $from;
+							$range_text  = sprintf(
+								/* translators: %s: minimum quantity */
+								esc_html__( '+ %s', 'woo-prices-dynamics-makito' ),
+								number_format_i18n( $threshold, 0 )
+							);
+						}
+
+						$price = isset( $tier['unit_price'] ) ? (float) $tier['unit_price'] : 0;
+						?>
+						<div class="wpdm-price-tiers__tier" role="row">
+							<div class="wpdm-price-tiers__qty" role="cell"><?php echo esc_html( $range_text ); ?></div>
+							<div class="wpdm-price-tiers__price" role="cell"><?php echo wp_kses_post( wc_price( $price ) ); ?></div>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<style>
+				.wpdm-price-tiers {
+					margin-top: 1.5em;
+					width: 100%;
+				}
+				.wpdm-price-tiers__band {
+					--wpdm-tier-blue-dark: var(--e-global-color-90d3021, #0464AC);
+					--wpdm-tier-blue-darker: var(--e-global-color-5273eb1, #061B46);
+					width: 100%;
+					display: grid;
+					grid-template-columns: repeat(<?php echo absint( count( $tiers ) ); ?>, minmax(110px, 1fr));
+					background: linear-gradient(135deg, var(--wpdm-tier-blue-dark) 0%, var(--wpdm-tier-blue-darker) 100%);
+					border-radius: 3px 3px 0 0;
+					border-bottom: 1px solid var(--wpdm-tier-blue-dark);
+					overflow-x: auto;
+					-webkit-overflow-scrolling: touch;
+				}
+				.wpdm-price-tiers__tier {
+					min-width: 110px;
+					text-align: center;
+				}
+				.wpdm-price-tiers__qty {
+					background: transparent;
+					color: #fff;
+					padding: 14px 12px;
+					font-size: 0.9em;
+					line-height: 1.2;
+					font-weight: 500;
+					text-transform: uppercase;
+					letter-spacing: 0;
+					border-right: 1px solid rgba(255, 255, 255, 0.2);
+				}
+				.wpdm-price-tiers__tier:last-child .wpdm-price-tiers__qty {
+					border-right: none;
+				}
+				.wpdm-price-tiers__price {
+					background: #fff;
+					color: #000;
+					padding: 22px 10px 13px;
+					font-size: 18px;
+					line-height: 1.2;
+					font-weight: 700;
+					border-right: 1px solid rgba(0, 0, 0, 0.08);
+				}
+				.wpdm-price-tiers__price .woocommerce-Price-amount {
+					font-weight: 700;
+				}
+				.wpdm-price-tiers__tier:last-child .wpdm-price-tiers__price {
+					border-right: none;
+				}
+				@media (max-width: 640px) {
+					.wpdm-price-tiers__band {
+						grid-template-columns: repeat(<?php echo absint( count( $tiers ) ); ?>, minmax(96px, 1fr));
 					}
-
-					$price = isset( $tier['unit_price'] ) ? (float) $tier['unit_price'] : 0;
-					?>
-					<tr>
-						<td><?php echo esc_html( $range_text ); ?></td>
-						<td><?php echo wp_kses_post( wc_price( $price ) ); ?></td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
-		</div>
-		<style>
-			.wpdm-price-tiers {
-				margin-top: 1.5em;
-			}
-			.wpdm-price-tiers__title {
-				margin-bottom: 0.5em;
-				font-size: 1.1em;
-				font-weight: 600;
-			}
-			.wpdm-price-tiers__table {
-				width: 100%;
-				border-collapse: collapse;
-				font-size: 0.95em;
-			}
-			.wpdm-price-tiers__table th,
-			.wpdm-price-tiers__table td {
-				padding: 8px 10px;
-				border: 1px solid #e0e0e0;
-				text-align: left;
-			}
-			.wpdm-price-tiers__table th {
-				background-color: #f5f5f5;
-				font-weight: 600;
-			}
-		</style>
+					.wpdm-price-tiers__tier {
+						min-width: 96px;
+					}
+					.wpdm-price-tiers__qty {
+						font-size: 15px;
+						padding: 12px 8px;
+					}
+					.wpdm-price-tiers__price {
+						padding: 16px 8px 11px;
+						font-size: 16px;
+					}
+				}
+			</style>
 		<?php
 
 		return (string) ob_get_clean();
 	}
 }
-
-

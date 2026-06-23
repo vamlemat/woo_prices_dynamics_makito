@@ -5,6 +5,80 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.8.1] - 2026-06-24
+
+### ✅ Versión estable de pruebas funcionales
+
+Esta versión consolida el estado actual del plugin tras las pruebas de ficha de producto, tabla de variaciones, precios por tramo y flujo de personalización en página dedicada.
+
+#### 🎨 Ajustes visuales en ficha de producto
+
+- ✅ La tabla clásica de precios por cantidad se reemplaza por una banda horizontal responsive.
+- ✅ La banda de tramos usa el mismo estilo visual que la cabecera de la tabla de cantidades: gradiente azul, texto blanco, pesos y separadores consistentes.
+- ✅ Se eliminan las leyendas visibles “Precios por cantidad” y “Selecciona cantidades (Color x Talla)” para dejar una interfaz más limpia.
+- ✅ Las etiquetas de tramo se muestran como cortes comerciales (`- 500`, `+ 500`, `+ 2.000`, etc.) aunque internamente los tramos arranquen en la unidad siguiente (`501`, `2001`, etc.).
+- ✅ Responsive preparado con columnas mínimas y scroll horizontal en pantallas pequeñas.
+
+#### 🧾 Documentación
+
+- ✅ README reescrito para reflejar el estado real del plugin en la versión 3.8.x.
+- ✅ Documentadas las funcionalidades actuales: tramos, tabla de variaciones, personalización dedicada, carrito, pedido, administración y shortcodes.
+- ✅ Actualizada la versión estable a `3.8.1`.
+
+**Archivos modificados:**
+- `README.md`
+- `CHANGELOG.md`
+- `woo-prices-dynamics-makito.php`
+- `includes/class-wpdm-frontend.php`
+- `includes/class-wpdm-variation-table.php`
+
+---
+
+## [3.8.0] - 2026-05-11
+
+### 🚀 Nueva página dedicada de personalización `/personalizar/{slug}/`
+
+Este es el cambio más importante en el flujo de personalización: en lugar de un popup modal que dependía del footer de la página de producto (con problemas de carga en Elementor y caché), la personalización ahora tiene su **propia URL independiente**.
+
+#### 🔗 Sistema de rutas
+
+- ✅ Nueva rewrite rule propia: `^personalizar/([^/]+)/?$` → no ancla la URL al permalink del producto, evitando que WooCommerce intervenga
+- ✅ Query var `wpdm_personalizar_slug` — permite detectar la página sin depender de `$_GET`
+- ✅ URL limpia: `/personalizar/nombre-producto/` en lugar de `/producto/?wpdm_personalizar=1`
+- ✅ `maybe_load_customization_template()` ya no requiere `is_singular('product')` — funciona como virtual page
+- ✅ `get_customization_page_url()` genera la URL usando `$product->get_slug()`
+- ✅ Flush automático de rewrite rules al activar el plugin (versión `'2'` de la opción para forzar re-flush)
+
+#### 🎨 Nueva interfaz — Layout de dos columnas (inspirado en Promotrader)
+
+- ✅ **Columna izquierda:** todas las áreas de marcaje visibles a la vez como tarjetas, sin acordeones ni pasos
+- ✅ **Columna derecha sticky:** panel de cotización en tiempo real con tabla de desglose por área (técnica, unidades, precio unitario, subtotal), total de personalización y botón "Finalizar pedido"
+- ✅ Cada tarjeta de área incluye: checkbox activar, selector de técnica, nº colores, dimensiones de impresión, precio unitario y total en vivo, aviso de mínimo de técnica, repetición cliché
+- ✅ Al activar una zona y seleccionar técnica: aparece paleta PANTONE visual (16 colores con códigos PANTONE completos), campo de texto manual, subida de imagen (JPG/PNG/PDF/EPS/AI/CDR, máx 5MB) con preview, y campo de observaciones
+- ✅ Modo global / por color: si hay variaciones guardadas, aparece el selector; en modo per-color se crean tarjetas por color con acordeón
+- ✅ Diseño responsive: 2 columnas en escritorio, 1 columna en móvil
+
+#### 📦 Transferencia de cantidades (sessionStorage)
+
+- ✅ Al hacer clic en "Añadir con personalización" desde la página de producto, el script recoge **todas las filas con qty > 0** de la tabla de variaciones (`.wpdm-table-qty-input`), extrayendo color, talla, variation_id y cantidad
+- ✅ Los datos se guardan en `sessionStorage` con clave `wpdm_selected_variations_{productId}` antes de redirigir
+- ✅ Fallback para productos simples: lee el input `.qty` estándar de WooCommerce
+- ✅ La página `/personalizar/` lee esos datos al cargar → los cálculos de precio y el selector de modo usan las **unidades reales**
+
+#### 🐛 Fixes
+
+- ✅ Eliminado el bloque antiguo de apertura de modal (código huérfano que impedía al botón funcionar)
+- ✅ Corregido cierre del `jQuery(document).ready()` que se perdió al limpiar código antiguo
+- ✅ `templates/customization-page.php` obtiene el producto via `get_page_by_path($slug, OBJECT, 'product')` en lugar de `get_the_ID()` (que devuelve 0 en páginas virtuales)
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization-frontend.php` — sistema de rutas, URL limpia, listener del botón con sessionStorage
+- `includes/templates/customization-page.php` — reescritura completa con layout 2 columnas
+- `woo-prices-dynamics-makito.php` — v3.8.0, activation hook mejorado
+- `CHANGELOG.md`
+
+---
+
 ## [3.7.6] - 2026-05-10
 
 ### 🔧 Corrección del botón de personalización
@@ -3740,6 +3814,5 @@ Esta versión marca el hito de la primera versión estable del plugin. Todas las
 ## Próximas Versiones
 
 Las futuras versiones seguirán este formato de changelog para mantener un historial claro de todos los cambios realizados en el plugin.
-
 
 
