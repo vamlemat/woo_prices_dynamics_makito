@@ -483,22 +483,30 @@ class WPDM_Variation_Table {
 				--wpdm-color-text: var(--e-global-color-text, #7A7A7A);
 				--wpdm-color-accent: var(--e-global-color-accent, #61CE70);
 				--wpdm-color-bg-light: var(--e-global-color-5938fdc, #F1F1F1);
-				--wpdm-color-blue-dark: var(--e-global-color-90d3021, #0464AC);
-				--wpdm-color-blue-darker: var(--e-global-color-5273eb1, #061B46);
-				--wpdm-color-white: var(--e-global-color-1e99445, #FFFFFF);
-			}
-			
-			.wpdm-variation-table-wrapper {
-				clear: both;
-				margin: 2em 0;
-			}
+					--wpdm-color-blue-dark: var(--e-global-color-90d3021, #0464AC);
+					--wpdm-color-blue-darker: var(--e-global-color-5273eb1, #061B46);
+					--wpdm-color-white: var(--e-global-color-1e99445, #FFFFFF);
+					--wpdm-font-primary: var(--e-global-typography-primary-font-family, "Montserrat");
+					--wpdm-font-text: var(--e-global-typography-text-font-family, "Montserrat");
+					--wpdm-font-primary-weight: var(--e-global-typography-primary-font-weight, 600);
+					--wpdm-font-text-weight: var(--e-global-typography-text-font-weight, 400);
+					--wpdm-font-accent-weight: var(--e-global-typography-accent-font-weight, 500);
+				}
+
+				.wpdm-variation-table-wrapper {
+					clear: both;
+					margin: 2em 0;
+					font-family: var(--wpdm-font-text), sans-serif;
+					font-weight: var(--wpdm-font-text-weight);
+				}
 			
 			.wpdm-variation-table-title {
-				font-size: 1.25em;
-				font-weight: 500;
-				margin-bottom: 1em;
-				color: var(--wpdm-color-secondary);
-			}
+					font-size: 1.25em;
+					font-weight: 500;
+					margin-bottom: 1em;
+					color: var(--wpdm-color-secondary);
+					font-family: var(--wpdm-font-primary), sans-serif;
+				}
 			
 			.wpdm-variation-table-container {
 				overflow-x: auto;
@@ -521,9 +529,10 @@ class WPDM_Variation_Table {
 			}
 			
 			.wpdm-variation-table th {
-				padding: 14px 12px;
-				text-align: center;
-				font-weight: 500;
+					padding: 14px 12px;
+					text-align: center;
+					font-family: var(--wpdm-font-primary), sans-serif;
+					font-weight: var(--wpdm-font-accent-weight);
 				font-size: 0.9em;
 				color: var(--wpdm-color-white);
 				text-transform: uppercase;
@@ -2154,4 +2163,3 @@ class WPDM_Variation_Table {
 		) );
 	}
 }
-

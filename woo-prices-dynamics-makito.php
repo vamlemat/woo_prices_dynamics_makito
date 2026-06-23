@@ -3,7 +3,7 @@
  * Plugin Name:       Woo Prices Dynamics Makito
  * Plugin URI:        https://github.com/vamlemat/publicmar-estructura
  * Description:       Precios por tramos, tabla de variaciones y flujo de personalización para productos WooCommerce sincronizados desde Makito u otros paneles externos.
- * Version:           3.8.1
+ * Version:           3.10.0
  * Author:            atech / vamlemat
  * Text Domain:       woo-prices-dynamics-makito
  * Requires at least: 5.0
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Definir constantes básicas del plugin.
 if ( ! defined( 'WPDM_WOOPRICES_VERSION' ) ) {
-	define( 'WPDM_WOOPRICES_VERSION', '3.8.1' );
+	define( 'WPDM_WOOPRICES_VERSION', '3.10.0' );
 }
 
 if ( ! defined( 'WPDM_WOOPRICES_PLUGIN_FILE' ) ) {
@@ -37,8 +37,10 @@ require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-price-tiers.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-cart-adjustments.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-frontend.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-order-meta.php';
+require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-admin-menu.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-admin-settings.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-variation-table.php';
+require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-marking-areas.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization-frontend.php';
 require_once WPDM_WOOPRICES_PLUGIN_DIR . 'includes/class-wpdm-customization-images-admin.php';
@@ -136,8 +138,10 @@ function wpdm_wooprices_init() {
 	WPDM_Cart_Adjustments::init();
 	WPDM_Frontend::init();
 	WPDM_Order_Meta::init();
+	WPDM_Admin_Menu::init();
 	WPDM_Admin_Settings::init();
 	WPDM_Variation_Table::init();
+	WPDM_Marking_Areas::init();
 	WPDM_Customization::init();
 	WPDM_Customization_Frontend::init();
 	WPDM_Customization_Images_Admin::init();

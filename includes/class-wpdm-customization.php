@@ -573,7 +573,12 @@ class WPDM_Customization {
 			if ( $technique ) {
 				$technique_data = self::get_technique_data( $technique );
 				$technique_data['technique_ref'] = $area['technique_ref'];
+				$technique_data['max_colors'] = isset( $area['max_colors'] ) ? absint( $area['max_colors'] ) : 1;
 				$grouped_areas[ $area_id ]['techniques'][] = $technique_data;
+				$grouped_areas[ $area_id ]['max_colors'] = max(
+					absint( $grouped_areas[ $area_id ]['max_colors'] ),
+					absint( $technique_data['max_colors'] )
+				);
 			}
 		}
 		
@@ -4210,4 +4215,3 @@ class WPDM_Customization {
 		exit;
 	}
 }
-

@@ -12,6 +12,13 @@ class WPDM_Customization_Images_Admin {
 	const UPLOAD_DIR = 'wpdm-customization';
 
 	/**
+	 * Hook de pantalla de la página admin.
+	 *
+	 * @var string
+	 */
+	private static $admin_page_hook = '';
+
+	/**
 	 * Inicializar hooks
 	 */
 	public static function init() {
@@ -25,11 +32,11 @@ class WPDM_Customization_Images_Admin {
 	 * Añadir menú en admin
 	 */
 	public static function add_admin_menu() {
-		add_submenu_page(
-			'woocommerce',
+		self::$admin_page_hook = add_submenu_page(
+			WPDM_Admin_Menu::MENU_SLUG,
 			__( 'Imágenes de Personalización', 'woo-prices-dynamics-makito' ),
 			__( 'Imágenes Personalización', 'woo-prices-dynamics-makito' ),
-			'manage_woocommerce',
+			WPDM_Admin_Menu::CAPABILITY,
 			'wpdm-customization-images',
 			array( __CLASS__, 'render_admin_page' )
 		);
@@ -39,7 +46,7 @@ class WPDM_Customization_Images_Admin {
 	 * Cargar scripts y estilos
 	 */
 	public static function enqueue_admin_scripts( $hook ) {
-		if ( $hook !== 'woocommerce_page_wpdm-customization-images' ) {
+		if ( $hook !== self::$admin_page_hook ) {
 			return;
 		}
 
@@ -208,7 +215,7 @@ class WPDM_Customization_Images_Admin {
 	public static function ajax_delete_image() {
 		check_ajax_referer( 'wpdm_customization_images_admin', 'nonce' );
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! current_user_can( WPDM_Admin_Menu::CAPABILITY ) ) {
 			wp_send_json_error( array( 'message' => __( 'No tienes permisos para realizar esta acción.', 'woo-prices-dynamics-makito' ) ) );
 		}
 
@@ -247,7 +254,7 @@ class WPDM_Customization_Images_Admin {
 	public static function ajax_bulk_delete_images() {
 		check_ajax_referer( 'wpdm_customization_images_admin', 'nonce' );
 
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! current_user_can( WPDM_Admin_Menu::CAPABILITY ) ) {
 			wp_send_json_error( array( 'message' => __( 'No tienes permisos para realizar esta acción.', 'woo-prices-dynamics-makito' ) ) );
 		}
 
@@ -300,7 +307,6 @@ class WPDM_Customization_Images_Admin {
 		}
 	}
 }
-
 
 
 

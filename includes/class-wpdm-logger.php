@@ -312,10 +312,10 @@ class WPDM_Logger {
 	 */
 	public static function add_admin_menu() {
 		add_submenu_page(
-			'woocommerce',
+			WPDM_Admin_Menu::MENU_SLUG,
 			__( 'WPDM Logs', 'woo-prices-dynamics-makito' ),
-			__( 'WPDM Logs', 'woo-prices-dynamics-makito' ),
-			'manage_woocommerce',
+			__( 'Logs', 'woo-prices-dynamics-makito' ),
+			WPDM_Admin_Menu::CAPABILITY,
 			'wpdm-logs',
 			array( __CLASS__, 'render_logs_page' )
 		);
@@ -333,6 +333,10 @@ class WPDM_Logger {
 	 * Renderizar página de logs.
 	 */
 	public static function render_logs_page() {
+		if ( ! current_user_can( WPDM_Admin_Menu::CAPABILITY ) ) {
+			wp_die( esc_html__( 'No tienes permisos suficientes para acceder a esta página.', 'woo-prices-dynamics-makito' ) );
+		}
+
 		// Manejar acciones.
 		if ( isset( $_POST['wpdm_clear_logs'] ) && check_admin_referer( 'wpdm_clear_logs' ) ) {
 			$deleted = self::clear_all_logs();
@@ -510,4 +514,3 @@ class WPDM_Logger {
 		<?php
 	}
 }
-

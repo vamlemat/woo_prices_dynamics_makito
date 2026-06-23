@@ -1,6 +1,6 @@
 ## Woo Prices Dynamics Makito
 
-Versión estable: **3.8.1**
+Versión estable: **3.10.0**
 
 Plugin para WooCommerce que añade precios por tramos, tabla rápida de variaciones y flujo de personalización para productos sincronizados desde Makito u otro panel externo.
 
@@ -54,6 +54,14 @@ La estructura completa de producto está documentada en `includes/GUIA_CREAR_PRO
 - Permite continuar hacia personalización con las cantidades seleccionadas.
 - Shortcode disponible: `[wpdm_variation_table]`.
 
+#### Áreas de marcaje
+
+- Muestra las áreas de impresión definidas en `marking_areas`.
+- Agrupa varias técnicas bajo la misma área física.
+- Incluye número de áreas, códigos de impresión, posición, medida máxima, técnicas, límite de colores e imagen.
+- Diseño responsive inspirado en catálogos B2B de producto.
+- Shortcode disponible: `[wpdm_marking_areas]`.
+
 #### Personalización
 
 - Botón “Añadir con personalización” en la ficha de producto.
@@ -74,7 +82,16 @@ La estructura completa de producto está documentada en `includes/GUIA_CREAR_PRO
 
 #### Administración
 
-Página en **WooCommerce → Precios Makito** con opciones para:
+Apartado propio en el backend: **Makito**.
+
+Subpáginas disponibles:
+
+- **Makito → Ajustes**
+- **Makito → Shortcodes**
+- **Makito → Imágenes Personalización**
+- **Makito → Logs**
+
+La página **Makito → Ajustes** incluye opciones para:
 
 - Mostrar u ocultar la tabla de tramos.
 - Activar la tabla de variaciones.
@@ -90,6 +107,7 @@ Página en **WooCommerce → Precios Makito** con opciones para:
 - `includes/class-wpdm-cart-adjustments.php`: aplicación de precios por tramo en carrito.
 - `includes/class-wpdm-frontend.php`: precio dinámico y banda visual de tramos.
 - `includes/class-wpdm-variation-table.php`: tabla de color/talla y AJAX de carrito.
+- `includes/class-wpdm-marking-areas.php`: shortcode visual de áreas de marcaje.
 - `includes/class-wpdm-customization-frontend.php`: botón, rutas y carga de la página `/personalizar/{slug}/`.
 - `includes/class-wpdm-customization.php`: cálculo, subida de imágenes, fees, carrito y pedido.
 - `includes/templates/customization-page.php`: interfaz dedicada de personalización.
@@ -104,7 +122,7 @@ Página en **WooCommerce → Precios Makito** con opciones para:
 
 1. Copiar la carpeta del plugin en `wp-content/plugins/`.
 2. Activar **Woo Prices Dynamics Makito** desde el panel de WordPress.
-3. Ir a **WooCommerce → Precios Makito** y revisar las opciones.
+3. Ir a **Makito → Ajustes** y revisar las opciones.
 4. Guardar enlaces permanentes si la URL `/personalizar/{slug}/` no responde tras la activación.
 5. Confirmar que los productos tengan `price_tiers`, variaciones y `marking_areas` cuando corresponda.
 
@@ -118,6 +136,10 @@ Página en **WooCommerce → Precios Makito** con opciones para:
 
 [wpdm_variation_table]
 [wpdm_variation_table product_id="123"]
+
+[wpdm_marking_areas]
+[wpdm_marking_areas product_id="123"]
+[wpdm_marking_areas title="Marcaje"]
 ```
 
 Los shortcodes pueden usarse en plantillas, tabs, widgets o constructores visuales. Si las opciones automáticas están activadas, no hace falta insertarlos manualmente en la ficha de producto.
@@ -138,4 +160,4 @@ Los shortcodes pueden usarse en plantillas, tabs, widgets o constructores visual
 
 ### Estado
 
-La versión **3.8.1** se considera estable según las pruebas funcionales actuales y lista para subir a GitHub. Se recomienda una revisión más profunda en entorno real antes de una release final de producción.
+La versión **3.10.0** se considera estable según las pruebas funcionales actuales y lista para subir a GitHub. Se recomienda una revisión más profunda en entorno real antes de una release final de producción.

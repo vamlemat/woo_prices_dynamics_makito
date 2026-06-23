@@ -616,16 +616,24 @@ class WPDM_Frontend {
 				</div>
 			</div>
 			<style>
-				.wpdm-price-tiers {
-					margin-top: 1.5em;
-					width: 100%;
-				}
-				.wpdm-price-tiers__band {
-					--wpdm-tier-blue-dark: var(--e-global-color-90d3021, #0464AC);
-					--wpdm-tier-blue-darker: var(--e-global-color-5273eb1, #061B46);
-					width: 100%;
-					display: grid;
-					grid-template-columns: repeat(<?php echo absint( count( $tiers ) ); ?>, minmax(110px, 1fr));
+					.wpdm-price-tiers {
+						--wpdm-tier-primary: var(--e-global-color-primary, #6EC1E4);
+						--wpdm-tier-blue-dark: var(--e-global-color-90d3021, #0464AC);
+						--wpdm-tier-blue-darker: var(--e-global-color-5273eb1, #061B46);
+						--wpdm-tier-secondary: var(--e-global-color-secondary, #54595F);
+						--wpdm-tier-white: var(--e-global-color-1e99445, #FFFFFF);
+						--wpdm-tier-font: var(--e-global-typography-text-font-family, "Montserrat");
+						--wpdm-tier-heading-font: var(--e-global-typography-primary-font-family, "Montserrat");
+						--wpdm-tier-heading-weight: var(--e-global-typography-primary-font-weight, 600);
+						--wpdm-tier-accent-weight: var(--e-global-typography-accent-font-weight, 500);
+						margin-top: 1.5em;
+						width: 100%;
+						font-family: var(--wpdm-tier-font), sans-serif;
+					}
+					.wpdm-price-tiers__band {
+						width: 100%;
+						display: grid;
+						grid-template-columns: repeat(<?php echo absint( count( $tiers ) ); ?>, minmax(110px, 1fr));
 					background: linear-gradient(135deg, var(--wpdm-tier-blue-dark) 0%, var(--wpdm-tier-blue-darker) 100%);
 					border-radius: 3px 3px 0 0;
 					border-bottom: 1px solid var(--wpdm-tier-blue-dark);
@@ -636,32 +644,34 @@ class WPDM_Frontend {
 					min-width: 110px;
 					text-align: center;
 				}
-				.wpdm-price-tiers__qty {
-					background: transparent;
-					color: #fff;
-					padding: 14px 12px;
-					font-size: 0.9em;
-					line-height: 1.2;
-					font-weight: 500;
-					text-transform: uppercase;
-					letter-spacing: 0;
-					border-right: 1px solid rgba(255, 255, 255, 0.2);
+					.wpdm-price-tiers__qty {
+						background: transparent;
+						color: var(--wpdm-tier-white);
+						padding: 14px 12px;
+						font-size: 0.9em;
+						line-height: 1.2;
+						font-family: var(--wpdm-tier-heading-font), sans-serif;
+						font-weight: var(--wpdm-tier-accent-weight);
+						text-transform: uppercase;
+						letter-spacing: 0;
+						border-right: 1px solid rgba(255, 255, 255, 0.2);
 				}
 				.wpdm-price-tiers__tier:last-child .wpdm-price-tiers__qty {
 					border-right: none;
 				}
-				.wpdm-price-tiers__price {
-					background: #fff;
-					color: #000;
-					padding: 22px 10px 13px;
-					font-size: 18px;
-					line-height: 1.2;
-					font-weight: 700;
-					border-right: 1px solid rgba(0, 0, 0, 0.08);
-				}
-				.wpdm-price-tiers__price .woocommerce-Price-amount {
-					font-weight: 700;
-				}
+					.wpdm-price-tiers__price {
+						background: var(--wpdm-tier-white);
+						color: var(--wpdm-tier-secondary);
+						padding: 22px 10px 13px;
+						font-size: 18px;
+						line-height: 1.2;
+						font-family: var(--wpdm-tier-heading-font), sans-serif;
+						font-weight: var(--wpdm-tier-heading-weight);
+						border-right: 1px solid rgba(0, 0, 0, 0.08);
+					}
+					.wpdm-price-tiers__price .woocommerce-Price-amount {
+						font-weight: var(--wpdm-tier-heading-weight);
+					}
 				.wpdm-price-tiers__tier:last-child .wpdm-price-tiers__price {
 					border-right: none;
 				}

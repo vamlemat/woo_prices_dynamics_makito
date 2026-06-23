@@ -227,14 +227,14 @@ class WPDM_Admin_Settings {
 	}
 
 	/**
-	 * Añadir página de ajustes bajo WooCommerce.
+	 * Añadir página de ajustes bajo el menú propio del plugin.
 	 */
 	public static function add_settings_page() {
 		add_submenu_page(
-			'woocommerce',
+			WPDM_Admin_Menu::MENU_SLUG,
 			__( 'Precios Makito', 'woo-prices-dynamics-makito' ),
-			__( 'Precios Makito', 'woo-prices-dynamics-makito' ),
-			'manage_woocommerce',
+			__( 'Ajustes', 'woo-prices-dynamics-makito' ),
+			WPDM_Admin_Menu::CAPABILITY,
 			'wpdm-wooprices-settings',
 			array( __CLASS__, 'render_settings_page' )
 		);
@@ -393,7 +393,7 @@ class WPDM_Admin_Settings {
 	 */
 	public static function render_settings_page() {
 		// Verificar permisos.
-		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! current_user_can( WPDM_Admin_Menu::CAPABILITY ) ) {
 			wp_die( esc_html__( 'No tienes permisos suficientes para acceder a esta página.', 'woo-prices-dynamics-makito' ) );
 		}
 
@@ -419,6 +419,5 @@ class WPDM_Admin_Settings {
 		<?php
 	}
 }
-
 
 

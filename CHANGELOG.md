@@ -5,6 +5,76 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.10.0] - 2026-06-24
+
+### ✨ Nuevo shortcode de áreas de marcaje
+
+Se añade un bloque visual público para mostrar las áreas de impresión del producto con la máxima información posible, usando los datos del repeater `marking_areas`.
+
+#### Shortcode
+
+- ✅ Nuevo shortcode `[wpdm_marking_areas]`.
+- ✅ Soporta `product_id`: `[wpdm_marking_areas product_id="123"]`.
+- ✅ Soporta título personalizable: `[wpdm_marking_areas title="Marcaje"]`.
+- ✅ Si se usa en ficha de producto, detecta automáticamente el producto actual.
+
+#### Visualización
+
+- ✅ Resumen superior con número de áreas de impresión.
+- ✅ Muestra códigos de impresión desde `_printcode`/`printcode` si existen.
+- ✅ Agrupa varias técnicas bajo la misma área física.
+- ✅ Cada área muestra: nombre/posición, medida máxima, técnicas disponibles, límite de colores o `FULLCOLOR` e imagen del área.
+- ✅ Diseño responsive con layout de catálogo B2B en escritorio y lectura vertical limpia en móvil.
+- ✅ El shortcode de áreas, la banda de precios y la tabla de variaciones usan colores y tipografías globales de Elementor con fallbacks seguros.
+- ✅ La página de personalización ahora respeta el máximo de colores de la técnica seleccionada, no solo el primer `max_colors` del área agrupada.
+- ✅ La paleta PANTONE permite rellenar cada fila de color de forma independiente; el swatch se aplica a la fila activa en lugar de sobrescribir siempre la primera.
+- ✅ La confirmación tras añadir un producto personalizado al carrito usa un aviso integrado tipo WooCommerce, con enlace a “Ver carrito”, en lugar de un aviso nativo del navegador.
+
+**Archivos modificados:**
+- `includes/class-wpdm-marking-areas.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
+## [3.9.0] - 2026-06-24
+
+### 🧭 Reestructuración del backend
+
+Se crea un apartado propio del plugin en el panel de WordPress para no mezclar las herramientas de Woo Prices Dynamics Makito dentro del menú de WooCommerce.
+
+#### Nuevo menú principal
+
+- ✅ Nuevo menú lateral **Makito**.
+- ✅ Nueva pantalla inicial del plugin con accesos rápidos a las secciones principales.
+- ✅ Nueva página **Makito → Shortcodes** con referencia rápida de todos los shortcodes disponibles.
+- ✅ Las páginas del plugin dejan de colgar de **WooCommerce**.
+
+#### Páginas movidas
+
+- ✅ **Makito → Ajustes**: configuración de tabla de tramos, tabla de variaciones, swatches y colores de stock.
+- ✅ **Makito → Shortcodes**: listado de shortcodes, variantes y ejemplos copiables.
+- ✅ **Makito → Imágenes Personalización**: gestión de imágenes subidas en personalizaciones.
+- ✅ **Makito → Logs**: configuración y consulta del sistema de logging.
+
+#### Seguridad y compatibilidad
+
+- ✅ Se mantiene la capability `manage_woocommerce` para conservar los permisos existentes.
+- ✅ La página de imágenes usa el hook real devuelto por WordPress para cargar sus assets solo donde corresponde.
+- ✅ La página de logs añade verificación explícita de permisos.
+
+**Archivos modificados:**
+- `includes/class-wpdm-admin-menu.php`
+- `includes/class-wpdm-admin-settings.php`
+- `includes/class-wpdm-customization-images-admin.php`
+- `includes/class-wpdm-logger.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.8.1] - 2026-06-24
 
 ### ✅ Versión estable de pruebas funcionales
@@ -3814,5 +3884,3 @@ Esta versión marca el hito de la primera versión estable del plugin. Todas las
 ## Próximas Versiones
 
 Las futuras versiones seguirán este formato de changelog para mantener un historial claro de todos los cambios realizados en el plugin.
-
-

@@ -58,7 +58,8 @@ get_header();
 .wc-palette{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
 .wc-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
 .wc-swatch:hover,.wc-swatch.sel{transform:scale(1.2);border-color:#0464AC;box-shadow:0 2px 6px rgba(4,100,172,.3)}
-.wc-pantone-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.wc-pantone-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;padding:2px;border-radius:6px}
+.wc-pantone-row.active{background:rgba(4,100,172,.08);box-shadow:0 0 0 1px rgba(4,100,172,.2)}
 .wc-pantone-preview{width:26px;height:26px;border-radius:4px;border:2px solid #ddd;background:#fff;flex-shrink:0}
 .wc-pantone-row input{flex:1;padding:7px;border:1px solid #d1d5db;border-radius:4px;font-size:.82rem}
 /* Image upload */
@@ -89,9 +90,23 @@ get_header();
 .wc-btn-back{display:block;width:100%;padding:12px;font-size:.9rem;font-weight:600;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;margin-bottom:10px;text-decoration:none;text-align:center}
 .wc-loading-quote{text-align:center;padding:20px;color:#9ca3af;font-size:.9rem}
 .wc-no-areas-msg{text-align:center;padding:30px;color:#9ca3af;font-size:.85rem}
+.wc-cart-notice{display:none;align-items:center;gap:14px;margin:0 0 18px;padding:14px 18px;border-radius:4px;background:#46b450;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.wc-cart-notice.show{display:flex}
+.wc-cart-notice.error{background:#dc3232}
+.wc-cart-notice-icon{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700}
+.wc-cart-notice-message{flex:1;font-size:.95rem;line-height:1.35}
+.wc-cart-notice a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.wc-cart-notice-close{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:0;margin-left:4px}
+@media(max-width:640px){.wc-cart-notice{align-items:flex-start}.wc-cart-notice a{white-space:normal}}
 </style>
 
 <div class="wc-page">
+<div id="wc-cart-notice" class="wc-cart-notice" role="status" aria-live="polite">
+  <span class="wc-cart-notice-icon">✓</span>
+  <span class="wc-cart-notice-message"></span>
+  <a class="wc-cart-notice-link" href="<?php echo esc_url(wc_get_cart_url());?>"><?php esc_html_e( 'Ver carrito', 'woo-prices-dynamics-makito' ); ?></a>
+  <button type="button" class="wc-cart-notice-close" aria-label="<?php esc_attr_e( 'Cerrar aviso', 'woo-prices-dynamics-makito' ); ?>">×</button>
+</div>
 <?php if($product): ?>
 <a href="<?php echo esc_url(get_permalink($product->get_id())); ?>" class="wc-back">← Volver al producto</a>
 <h1 class="wc-title"><?php echo esc_html($product->get_name()); ?> — Personalización</h1>
@@ -174,6 +189,14 @@ function showLoading(){$('#wc-loading').show();$('#wc-error,#wc-no-areas,#wc-mai
 function showError(m){$('#wc-error-msg').text(m);$('#wc-error').show();$('#wc-loading,#wc-no-areas,#wc-main').hide();}
 function showNoAreas(){$('#wc-no-areas').show();$('#wc-loading,#wc-error,#wc-main').hide();}
 function showMain(){$('#wc-main').show();$('#wc-loading,#wc-error,#wc-no-areas').hide();}
+function showCartNotice(message,isError){
+  var $notice=$('#wc-cart-notice');
+  $notice.toggleClass('error',!!isError).addClass('show');
+  $notice.find('.wc-cart-notice-icon').text(isError?'!':'✓');
+  $notice.find('.wc-cart-notice-message').text(message);
+  $notice.find('.wc-cart-notice-link').toggle(!isError);
+  $('html,body').animate({scrollTop:$notice.offset().top-20},250);
+}
 
 function buildPaletteRow(colorNum){
   var h='<div class="wc-pantone-row" data-cn="'+colorNum+'">';
@@ -218,13 +241,13 @@ function buildAreaCard(area, idx, variation){
   h+='<div class="wc-field"><label>Técnica de marcación</label>';
   h+='<select class="wc-technique"><option value="">Selecciona una técnica...</option>';
   if(area.techniques) area.techniques.forEach(function(t){
-    h+='<option value="'+t.ref+'" data-name="'+t.name+'">'+t.name+'</option>';
+    h+='<option value="'+t.ref+'" data-name="'+t.name+'" data-max-colors="'+(parseInt(t.max_colors,10)||area.max_colors||1)+'">'+t.name+'</option>';
   });
   h+='</select></div>';
 
   /* Colores + dimensiones en fila */
   h+='<div class="wc-field-row">';
-  h+='<div class="wc-field"><label>Nº colores</label><select class="wc-colors">';
+  h+='<div class="wc-field"><label>Nº colores</label><select class="wc-colors" data-area-max-colors="'+(area.max_colors||1)+'">';
   for(var i=1;i<=(area.max_colors||4);i++) h+='<option value="'+i+'">'+i+' COLOR'+(i>1?'ES':'')+'</option>';
   h+='</select></div>';
   h+='<div class="wc-field"><label>Medida de impresión (mm)</label>';
@@ -249,7 +272,7 @@ function buildAreaCard(area, idx, variation){
   }
   h+='<div style="font-size:.78rem;color:#888;text-align:center">';
   if(area.width&&area.height) h+='Máx: '+area.width+'×'+area.height+' mm<br>';
-  if(area.max_colors) h+='Máx colores: '+area.max_colors;
+  if(area.max_colors) h+='<span class="wc-max-colors-text">Máx colores: '+area.max_colors+'</span>';
   h+='</div>';
   h+='</div>';
 
@@ -302,6 +325,31 @@ function updatePantoneRows($card){
     for(var i=current+1;i<=n;i++) $rows.append(buildPaletteRow(i));
   } else {
     $rows.find('.wc-pantone-row').slice(n).remove();
+  }
+}
+
+function setActivePantoneRow($row){
+  var $card=$row.closest('.wc-area');
+  $card.find('.wc-pantone-row').removeClass('active');
+  $row.addClass('active');
+  $card.data('active-pantone-cn',$row.data('cn'));
+}
+
+function getSelectedTechniqueMaxColors($card){
+  var $opt=$card.find('.wc-technique option:selected');
+  return parseInt($opt.data('max-colors'),10)||parseInt($card.find('.wc-colors').data('area-max-colors'),10)||1;
+}
+
+function updateColorOptionsForTechnique($card){
+  var max=getSelectedTechniqueMaxColors($card);
+  var $colors=$card.find('.wc-colors');
+  var current=parseInt($colors.val(),10)||1;
+  var html='';
+  for(var i=1;i<=max;i++) html+='<option value="'+i+'">'+i+' COLOR'+(i>1?'ES':'')+'</option>';
+  $colors.html(html).val(Math.min(current,max));
+  $card.find('.wc-max-colors-text').text('Máx colores: '+max);
+  if($card.find('.wc-area-enabled').is(':checked')&&$card.find('.wc-technique').val()){
+    updatePantoneRows($card);
   }
 }
 
@@ -469,16 +517,29 @@ function doAddToCart(){
     fd.append('design['+uid+']',JSON.stringify({areaId:$a.data('area-id'),areaIndex:aIdx,variationId:vid,pantones:pantones,observations:$a.find('.wc-obs').val()||''}));
   });
 
-  $.ajax({url:ajaxUrl,type:'POST',data:fd,processData:false,contentType:false,
-    success:function(r){
-      if(r.success){$('body').trigger('wc_fragment_refresh');alert('✅ Producto añadido al carrito.');window.location.href=cartUrl;}
-      else{alert('❌ '+(r.data&&r.data.message?r.data.message:'Error.'));$btn.prop('disabled',false).text('🛒 Finalizar pedido');}
-    },
-    error:function(){alert('❌ Error de conexión.');$btn.prop('disabled',false).text('🛒 Finalizar pedido');}
-  });
-}
+	  $.ajax({url:ajaxUrl,type:'POST',data:fd,processData:false,contentType:false,
+	    success:function(r){
+	      if(r.success){
+	        $('body').trigger('wc_fragment_refresh');
+	        showCartNotice((r.data&&r.data.message)?r.data.message:'Producto añadido al carrito correctamente.',false);
+	        $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	      } else {
+	        showCartNotice((r.data&&r.data.message?r.data.message:'Error al añadir al carrito.'),true);
+	        $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	      }
+	    },
+	    error:function(){
+	      showCartNotice('Error de conexión.',true);
+	      $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	    }
+	  });
+	}
 
 $(document).ready(function(){
+  $(document).on('click','.wc-cart-notice-close',function(){
+    $('#wc-cart-notice').removeClass('show error');
+  });
+
   if(!productId){showError('No se pudo determinar el producto.');return;}
   showLoading();
   $.ajax({url:ajaxUrl,type:'POST',data:{action:'wpdm_get_customization_data',nonce:nonce,product_id:productId},
@@ -505,6 +566,7 @@ $(document).ready(function(){
   /* Cambio de técnica */
   $(document).on('change','.wc-technique',function(){
     var $card=$(this).closest('.wc-area');
+    updateColorOptionsForTechnique($card);
     showHideDesignSections($card);
     calcPrice();
   });
@@ -527,16 +589,24 @@ $(document).ready(function(){
     calcPrice();
   });
 
+  /* Selección de fila PANTONE */
+  $(document).on('focus click','.wc-pantone-val,.wc-pantone-preview',function(){
+    setActivePantoneRow($(this).closest('.wc-pantone-row'));
+  });
+
   /* Swatch PANTONE */
   $(document).on('click','.wc-swatch',function(){
     var $card=$(this).closest('.wc-area');
-    /* find active pantone row: the one whose dropdown is open or first empty */
     var hex=$(this).data('hex'), pantone=$(this).data('pantone');
-    /* apply to last focused row */
-    var $target=$card.find('.wc-pantone-val:focus');
+    var activeCn=$card.data('active-pantone-cn');
+    var $target=activeCn?$card.find('.wc-pantone-row[data-cn="'+activeCn+'"] .wc-pantone-val'):$();
+    if(!$target.length){
+      $target=$card.find('.wc-pantone-val').filter(function(){return !$(this).val().trim();}).first();
+    }
     if(!$target.length) $target=$card.find('.wc-pantone-val').first();
     $target.val(pantone);
     var cn=$target.data('cn');
+    setActivePantoneRow($target.closest('.wc-pantone-row'));
     $card.find('.wc-pantone-row[data-cn="'+cn+'"] .wc-pantone-preview').css('background',hex);
     /* highlight swatch */
     $card.find('.wc-swatch').removeClass('sel');
@@ -544,6 +614,7 @@ $(document).ready(function(){
   });
 
   $(document).on('input','.wc-pantone-val',function(){
+    setActivePantoneRow($(this).closest('.wc-pantone-row'));
     /* clear swatch highlight when typing manually */
   });
 
