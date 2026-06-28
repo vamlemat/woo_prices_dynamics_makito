@@ -39,6 +39,7 @@ class WPDM_Customization {
 		add_filter( 'woocommerce_cart_item_name', array( __CLASS__, 'add_customization_to_cart_item_name' ), 10, 3 );
 		add_action( 'woocommerce_checkout_create_order_line_item', array( __CLASS__, 'save_customization_to_order' ), 10, 4 );
 		add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( __CLASS__, 'format_order_item_meta' ), 10, 2 );
+		add_action( 'wp_head', array( __CLASS__, 'output_cart_loading_styles' ), 20 );
 		add_action( 'wp_footer', array( __CLASS__, 'enqueue_cart_toggle_script' ), 999 );
 		
 		// Añadir personalización como fee (cargo adicional separado)
@@ -1914,6 +1915,64 @@ class WPDM_Customization {
 	}
 
 	/**
+	 * Ocultar la tabla estándar mientras el carrito agrupado se prepara.
+	 */
+	public static function output_cart_loading_styles() {
+		if ( function_exists( 'is_cart' ) && function_exists( 'is_checkout' ) && ! is_cart() && ! is_checkout() ) {
+			return;
+		}
+		?>
+		<script>
+		document.documentElement.classList.add('wpdm-cart-js');
+		</script>
+		<style>
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form {
+			position: relative;
+			min-height: 220px;
+		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form__contents {
+			opacity: 0;
+			visibility: hidden;
+			pointer-events: none;
+		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form::before {
+			content: "";
+			position: absolute;
+			top: 56px;
+			left: 50%;
+			z-index: 5;
+			width: 46px;
+			height: 46px;
+			margin-left: -23px;
+			border: 4px solid rgba(110, 193, 228, 0.28);
+			border-top-color: var(--e-global-color-5273eb1, #061B46);
+			border-radius: 50%;
+			animation: wpdm-cart-loader-spin 0.8s linear infinite;
+		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form::after {
+			content: "Preparando carrito...";
+			position: absolute;
+			top: 112px;
+			left: 0;
+			right: 0;
+			z-index: 5;
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.3;
+			text-align: center;
+		}
+		@keyframes wpdm-cart-loader-spin {
+			to {
+				transform: rotate(360deg);
+			}
+		}
+		</style>
+		<?php
+	}
+
+	/**
 	 * Script para toggle de detalles en carrito
 	 */
 	public static function enqueue_cart_toggle_script() {
@@ -1932,6 +1991,35 @@ class WPDM_Customization {
 		<script>
 		(function($) {
 			'use strict';
+
+			function setWPDMCartLoading() {
+				$('body').removeClass('wpdm-cart-ready').addClass('wpdm-cart-loading');
+			}
+
+			function setWPDMCartReady() {
+				$('body').removeClass('wpdm-cart-loading').addClass('wpdm-cart-ready');
+			}
+
+			function setWPDMCartDeleting(message) {
+				var $existing = $('.wpdm-cart-action-loader');
+				if ($existing.length) {
+					$existing.find('.wpdm-cart-action-loader-message').text(message || 'Eliminando producto...');
+					return;
+				}
+
+				var $loader = $('<div class="wpdm-cart-action-loader" role="status" aria-live="polite"></div>');
+				var $dialog = $('<div class="wpdm-cart-action-loader-dialog"></div>');
+				var $spinner = $('<span class="wpdm-cart-action-loader-spinner" aria-hidden="true"></span>');
+				var $message = $('<span class="wpdm-cart-action-loader-message"></span>').text(message || 'Eliminando producto...');
+
+				$dialog.append($spinner, $message);
+				$loader.append($dialog);
+				$('body').append($loader);
+
+				setTimeout(function() {
+					$loader.addClass('wpdm-cart-action-loader-visible');
+				}, 10);
+			}
 
 			function wpdmCartConfirm(options) {
 				var settings = $.extend({
@@ -3247,6 +3335,7 @@ class WPDM_Customization {
 						$groupContainer.data('wpdm-reorganized', true);
 					}
 				});
+					setWPDMCartReady();
 				} // Fin de processCustomizedGroups()
 			}
 			
@@ -3254,18 +3343,20 @@ class WPDM_Customization {
 			// Si el cliente desea cambiar la cantidad, debe eliminar el producto y volver a añadirlo.
 
 			function removeCartGroupItemsWithConfirm(groupItems, message) {
-				wpdmCartConfirm({
-					title: 'Eliminar producto',
-					message: message,
-					confirmText: 'Eliminar',
-					cancelText: 'Cancelar'
-				}).done(function(confirmed) {
-					if (!confirmed) {
-						return;
-					}
+					wpdmCartConfirm({
+						title: 'Eliminar producto',
+						message: message,
+						confirmText: 'Eliminar',
+						cancelText: 'Cancelar'
+					}).done(function(confirmed) {
+						if (!confirmed) {
+							return;
+						}
 
-					var removed = 0;
-					var totalItems = groupItems.length;
+						setWPDMCartDeleting('Eliminando producto...');
+
+						var removed = 0;
+						var totalItems = groupItems.length;
 
 					groupItems.each(function() {
 						var $item = $(this);
@@ -3383,6 +3474,7 @@ class WPDM_Customization {
 						cancelText: 'Cancelar'
 					}).done(function(confirmed) {
 						if (confirmed) {
+							setWPDMCartDeleting('Eliminando producto...');
 							removeNext();
 						}
 					});
@@ -3456,6 +3548,7 @@ class WPDM_Customization {
 				
 				isReorganizing = true;
 				lastReorganizationTime = now;
+				setWPDMCartLoading();
 				
 				console.log('[WPDM Cart] Inicializando reorganización del carrito');
 				
@@ -3464,6 +3557,7 @@ class WPDM_Customization {
 					reorganizeCartItems();
 				} catch (error) {
 					console.error('[WPDM Cart] Error durante reorganización:', error);
+					setWPDMCartReady();
 				} finally {
 					// Liberar flag después de un delay
 					setTimeout(function() {
@@ -3712,6 +3806,47 @@ class WPDM_Customization {
 			border-color: var(--e-global-color-5273eb1, #061B46);
 			background: var(--e-global-color-5273eb1, #061B46);
 			color: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.wpdm-cart-action-loader {
+			position: fixed;
+			inset: 0;
+			z-index: 1000000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			background: rgba(6, 27, 70, 0.58);
+			opacity: 0;
+			visibility: hidden;
+			transition: opacity 0.16s ease, visibility 0.16s ease;
+		}
+		.wpdm-cart-action-loader-visible {
+			opacity: 1;
+			visibility: visible;
+		}
+		.wpdm-cart-action-loader-dialog {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			min-width: min(360px, 100%);
+			padding: 20px 22px;
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-radius: 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			box-shadow: 0 18px 50px rgba(6, 27, 70, 0.28);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 15px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+		}
+		.wpdm-cart-action-loader-spinner {
+			width: 34px;
+			height: 34px;
+			border: 4px solid rgba(110, 193, 228, 0.28);
+			border-top-color: var(--e-global-color-5273eb1, #061B46);
+			border-radius: 50%;
+			animation: wpdm-cart-loader-spin 0.8s linear infinite;
+			flex-shrink: 0;
 		}
 
 		.wpdm-group-title {

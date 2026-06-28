@@ -5,6 +5,22 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.10.3] - 2026-06-28
+
+### 🛒 Carga visual en cesta
+
+- ✅ La tabla estándar de WooCommerce se oculta mientras se prepara la vista agrupada del carrito.
+- ✅ Se añade un loader visual “Preparando carrito...” para evitar el salto visual entre la tabla nativa y la agrupación del plugin.
+- ✅ Al confirmar la eliminación de un grupo aparece un overlay “Eliminando producto...” hasta que termina el borrado y se recarga la cesta.
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.10.2] - 2026-06-28
 
 ### 🛒 Mejoras de cesta
