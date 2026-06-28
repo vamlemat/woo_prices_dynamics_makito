@@ -2321,12 +2321,7 @@ class WPDM_Customization {
 						                      rowClasses.indexOf('wpdm-customized-global') !== -1 || 
 						                      rowClasses.indexOf('wpdm-customized-per-color') !== -1;
 						
-						// ESTRATEGIA SIMPLIFICADA:
-						// - Para productos CON personalización: Agrupar SOLO por productId (todas las variaciones juntas)
-						// - Para productos SIN personalización: Agrupar SOLO por productId
-						// - Solo separar si realmente hay diferentes personalizaciones (esto se detectará después si es necesario)
-						
-						var groupKey = productId; // Usar solo productId para agrupar
+						var groupKey = productId + (hasCustomization ? '_customized' : '_standard');
 						
 						// Buscar si ya existe un grupo para este productId
 						if (!productGroups[groupKey]) {
@@ -2441,6 +2436,9 @@ class WPDM_Customization {
 				
 				$.each(productGroups, function(groupKey, items) {
 					var productId = groupKey;
+					if (groupKey.indexOf('_') !== -1) {
+						productId = groupKey.split('_')[0];
+					}
 					
 					// Verificar si el primer item tiene personalización
 					var $firstItem = items[0];
@@ -2568,6 +2566,11 @@ class WPDM_Customization {
 					console.error('[WPDM Cart] Error al obtener datos de personalización, usando agrupación simple');
 					// Fallback: agrupar por productId sin separar por personalización
 					$.each(productGroups, function(groupKey, items) {
+						var productId = groupKey;
+						if (groupKey.indexOf('_') !== -1) {
+							productId = groupKey.split('_')[0];
+						}
+
 						var $firstItem = items[0];
 						var $firstItemRow = $firstItem.closest('tr, .cart_item');
 						var firstItemClasses = $firstItemRow.attr('class') || '';
@@ -2578,10 +2581,10 @@ class WPDM_Customization {
 						if (hasCustomization) {
 							customizedGroups[groupKey] = items;
 						} else {
-							if (!nonCustomizedGroups[groupKey]) {
-								nonCustomizedGroups[groupKey] = [];
+							if (!nonCustomizedGroups[productId]) {
+								nonCustomizedGroups[productId] = [];
 							}
-							nonCustomizedGroups[groupKey] = nonCustomizedGroups[groupKey].concat(items);
+							nonCustomizedGroups[productId] = nonCustomizedGroups[productId].concat(items);
 						}
 					});
 					
@@ -3849,6 +3852,104 @@ class WPDM_Customization {
 			flex-shrink: 0;
 		}
 
+		.elementor-widget-jet-cart-totals .cart_totals {
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-radius: 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			box-shadow: 0 4px 12px rgba(6, 27, 70, 0.08);
+			overflow: hidden;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals h2 {
+			margin: 0;
+			padding: 16px 20px;
+			border-bottom: 3px solid var(--e-global-color-primary, #6EC1E4);
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 20px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			line-height: 1.3;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table {
+			width: 100%;
+			margin: 0;
+			border: none;
+			border-collapse: collapse;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table tr {
+			border-bottom: 1px solid rgba(84, 89, 95, 0.14);
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table tr:last-child {
+			border-bottom: none;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table th,
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table td {
+			padding: 13px 20px;
+			border: none;
+			background: transparent;
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			line-height: 1.35;
+			vertical-align: middle;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table th {
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			text-align: left;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table td {
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			text-align: right;
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table .fee th,
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table .fee td {
+			color: var(--e-global-color-90d3021, #0464AC);
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table .order-total th,
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table .order-total td {
+			padding-top: 16px;
+			padding-bottom: 16px;
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-size: 16px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+		}
+		.elementor-widget-jet-cart-totals .cart_totals .shop_table .order-total strong {
+			font-weight: inherit;
+		}
+		.elementor-widget-jet-cart-totals .wc-proceed-to-checkout {
+			padding: 18px 20px 20px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.elementor-widget-jet-cart-totals .wc-proceed-to-checkout .checkout-button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			min-height: 44px;
+			margin: 0;
+			padding: 12px 18px;
+			border: none;
+			border-radius: 4px;
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-accent-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.2;
+			text-align: center;
+			text-transform: uppercase;
+			letter-spacing: 0;
+			transition: color 0.2s ease, background-color 0.2s ease;
+		}
+		.elementor-widget-jet-cart-totals .wc-proceed-to-checkout .checkout-button:hover,
+		.elementor-widget-jet-cart-totals .wc-proceed-to-checkout .checkout-button:focus {
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+		}
+
 		.wpdm-group-title {
 			min-width: 0;
 		}
@@ -3948,6 +4049,17 @@ class WPDM_Customization {
 			}
 			.wpdm-group-status-badge {
 				white-space: normal;
+			}
+			.elementor-widget-jet-cart-totals .cart_totals h2 {
+				padding: 14px 18px;
+				font-size: 18px;
+			}
+			.elementor-widget-jet-cart-totals .cart_totals .shop_table th,
+			.elementor-widget-jet-cart-totals .cart_totals .shop_table td {
+				padding: 12px 18px;
+			}
+			.elementor-widget-jet-cart-totals .wc-proceed-to-checkout {
+				padding: 16px 18px 18px;
 			}
 			.wpdm-customization-details-content {
 				font-size: 0.9em;

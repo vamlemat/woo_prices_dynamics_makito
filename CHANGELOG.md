@@ -5,6 +5,22 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.10.4] - 2026-06-28
+
+### 🛒 Ajustes de resumen y agrupación de cesta
+
+- ✅ El bloque “Totales del carrito” adopta la estética global de la web: cabecera azul oscuro, filas limpias, total destacado y botón de checkout con hover consistente.
+- ✅ El carrito separa correctamente el mismo producto cuando existe una línea sin personalizar y otra personalizada.
+- ✅ La agrupación inicial distingue productos `standard` y `customized` para evitar mezclar estados de personalización.
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.10.3] - 2026-06-28
 
 ### 🛒 Carga visual en cesta
