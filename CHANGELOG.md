@@ -5,6 +5,28 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.10.1] - 2026-06-28
+
+### 🎨 Ajustes visuales de producto y carrito
+
+- ✅ Los botones “Añadir sin personalizar” y “Añadir con personalización” usan los colores globales de Elementor y el mismo patrón de hover que el resto de botones de la web.
+- ✅ La tabla de variaciones activa scroll vertical cuando hay más de 7 líneas de variación, manteniendo cabecera y totales accesibles.
+- ✅ La visualización pública de áreas de marcaje se adapta a la paleta global de Elementor, con cabecera azul oscuro, fondos claros y tipografía Montserrat.
+- ✅ El shortcode `[wpdm_marking_areas]` deja de mostrar el título “Marcaje” por defecto para evitar duplicarlo con la pestaña de producto.
+- ✅ El carrito oculta los encabezados estándar de WooCommerce cuando se usa la agrupación visual del plugin.
+
+**Archivos modificados:**
+- `assets/css/wpdm-customization.css`
+- `includes/class-wpdm-customization-frontend.php`
+- `includes/class-wpdm-customization.php`
+- `includes/class-wpdm-marking-areas.php`
+- `includes/class-wpdm-variation-table.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.10.0] - 2026-06-24
 
 ### ✨ Nuevo shortcode de áreas de marcaje

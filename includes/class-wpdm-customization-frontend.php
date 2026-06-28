@@ -69,7 +69,7 @@ class WPDM_Customization_Frontend {
 
 				// Crear el botón
 				var $buttonWrapper = $('<div class="wpdm-customization-button-wrapper" style="margin-top: 1.5em; text-align: center;"></div>');
-				var $button = $('<button type="button" class="button wpdm-add-customized-to-cart" data-product-id="' + <?php echo esc_js( $product_id ); ?> + '" style="padding: 14px 32px; font-size: 1em; border-radius: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; background-color: #0073aa; color: #fff; border: none; cursor: pointer;">Añadir con personalización</button>');
+				var $button = $('<button type="button" class="button wpdm-btn-personalizar wpdm-add-customized-to-cart" data-product-id="' + <?php echo esc_js( $product_id ); ?> + '">Añadir con personalización</button>');
 				
 				$buttonWrapper.append($button);
 				
@@ -351,7 +351,6 @@ class WPDM_Customization_Frontend {
 				class="wpdm-btn-personalizar wpdm-add-customized-to-cart"
 				data-product-id="<?php echo esc_attr( $product_id ); ?>"
 				data-customization-url="<?php echo esc_url( $customization_url ); ?>"
-				style="display:inline-block;padding:12px 28px;background:#0073aa;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;cursor:pointer;"
 			>
 				<?php esc_html_e( 'Añadir con personalización', 'woo-prices-dynamics-makito' ); ?>
 			</a>

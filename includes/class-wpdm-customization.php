@@ -3496,6 +3496,12 @@ class WPDM_Customization {
 		})(jQuery);
 		</script>
 		<style>
+		/* Ocultar cabeceras estándar de WooCommerce: los grupos WPDM ya muestran la información relevante */
+		.woocommerce-cart-form .shop_table.cart thead,
+		.shop_table.shop_table_responsive.cart.woocommerce-cart-form__contents thead {
+			display: none !important;
+		}
+
 		/* Ocultar detalles por defecto */
 		.wpdm-customization-details-content.wpdm-details-hidden {
 			display: none !important;

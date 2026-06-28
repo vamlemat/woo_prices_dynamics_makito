@@ -281,11 +281,12 @@ class WPDM_Variation_Table {
 		
 		// Obtener tamaño del círculo de color desde configuración
 		$swatch_size = absint( get_option( self::OPTION_COLOR_SWATCH_SIZE, 36 ) );
+		$has_scrollable_rows = count( $row_values ) > 7;
 
 		ob_start();
 		?>
 		<div class="wpdm-variation-table-wrapper">
-			<div class="wpdm-variation-table-container">
+			<div class="wpdm-variation-table-container<?php echo $has_scrollable_rows ? ' wpdm-variation-table-container-scroll' : ''; ?>">
 				<table class="wpdm-variation-table">
 					<thead>
 						<tr>
@@ -513,6 +514,18 @@ class WPDM_Variation_Table {
 				margin: 1.5em 0;
 				-webkit-overflow-scrolling: touch;
 			}
+
+			.wpdm-variation-table-container-scroll {
+				max-height: 660px;
+				overflow: auto;
+				border-radius: 8px;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+			}
+
+			.wpdm-variation-table-container-scroll .wpdm-variation-table {
+				margin: 0;
+				box-shadow: none;
+			}
 			
 			.wpdm-variation-table {
 				width: 100%;
@@ -538,6 +551,12 @@ class WPDM_Variation_Table {
 				text-transform: uppercase;
 				letter-spacing: 0;
 				border-right: 1px solid rgba(255, 255, 255, 0.2);
+			}
+
+			.wpdm-variation-table-container-scroll .wpdm-variation-table thead th {
+				position: sticky;
+				top: 0;
+				z-index: 3;
 			}
 			
 			.wpdm-variation-table th.wpdm-table-header-col {
@@ -733,6 +752,12 @@ class WPDM_Variation_Table {
 				background: linear-gradient(135deg, var(--wpdm-color-bg-light) 0%, rgba(241, 241, 241, 0.5) 100%);
 				font-weight: 600;
 			}
+
+			.wpdm-variation-table-container-scroll .wpdm-table-totals-row td {
+				position: sticky;
+				bottom: 0;
+				z-index: 2;
+			}
 			
 			.wpdm-variation-table .wpdm-table-totals-row td {
 				border-top: 2px solid rgba(0, 0, 0, 0.1);
@@ -800,30 +825,32 @@ class WPDM_Variation_Table {
 				font-size: 1.1em;
 			}
 			
-			.wpdm-add-table-to-cart {
+			.wpdm-table-buttons-wrapper .wpdm-add-table-to-cart.button.alt,
+			.wpdm-table-buttons-wrapper .wpdm-add-customized-to-cart.button.alt {
 				padding: 14px 32px;
 				font-size: 1em;
-				margin-top: 1.5em;
 				border-radius: 6px;
-				transition: all 0.3s ease;
 				font-weight: 500;
 				text-transform: uppercase;
-				letter-spacing: 0.5px;
-				background-color: var(--wpdm-color-accent);
-				color: var(--wpdm-color-white);
-				border: none;
+				letter-spacing: 0;
+				background-color: var(--e-global-color-primary) !important;
+				color: var(--e-global-color-5273eb1) !important;
+				border: none !important;
+				transition: color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
 			}
 			
-			.wpdm-add-table-to-cart:disabled {
+			.wpdm-table-buttons-wrapper .wpdm-add-table-to-cart.button.alt:disabled,
+			.wpdm-table-buttons-wrapper .wpdm-add-customized-to-cart.button.alt:disabled {
 				opacity: 0.5;
 				cursor: not-allowed;
 			}
 			
-			.wpdm-add-table-to-cart:not(:disabled):hover {
-				transform: translateY(-2px);
-				box-shadow: 0 4px 12px rgba(97, 206, 112, 0.3);
-				background-color: var(--wpdm-color-accent);
-				opacity: 0.9;
+			.wpdm-table-buttons-wrapper .wpdm-add-table-to-cart.button.alt:not(:disabled):hover,
+			.wpdm-table-buttons-wrapper .wpdm-add-table-to-cart.button.alt:not(:disabled):focus,
+			.wpdm-table-buttons-wrapper .wpdm-add-customized-to-cart.button.alt:not(:disabled):hover,
+			.wpdm-table-buttons-wrapper .wpdm-add-customized-to-cart.button.alt:not(:disabled):focus {
+				color: var(--e-global-color-1e99445) !important;
+				background-color: var(--e-global-color-5273eb1) !important;
 			}
 			
 			@media (max-width: 768px) {

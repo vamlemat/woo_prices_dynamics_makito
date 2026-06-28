@@ -27,7 +27,7 @@ class WPDM_Marking_Areas {
 		$atts = shortcode_atts(
 			array(
 				'product_id' => 0,
-				'title'      => __( 'Marcaje', 'woo-prices-dynamics-makito' ),
+				'title'      => '',
 			),
 			$atts,
 			'wpdm_marking_areas'
@@ -132,6 +132,9 @@ class WPDM_Marking_Areas {
 					--wpdm-marking-primary: var(--e-global-color-primary, #6EC1E4);
 					--wpdm-marking-secondary: var(--e-global-color-secondary, #54595F);
 					--wpdm-marking-text: var(--e-global-color-text, #7A7A7A);
+					--wpdm-marking-bg: var(--e-global-color-5938fdc, #F1F1F1);
+					--wpdm-marking-blue: var(--e-global-color-90d3021, #0464AC);
+					--wpdm-marking-blue-dark: var(--e-global-color-5273eb1, #061B46);
 					--wpdm-marking-surface: var(--e-global-color-1e99445, #FFFFFF);
 					--wpdm-marking-font: var(--e-global-typography-text-font-family, "Montserrat");
 					--wpdm-marking-heading-font: var(--e-global-typography-primary-font-family, "Montserrat");
@@ -140,16 +143,21 @@ class WPDM_Marking_Areas {
 					--wpdm-marking-accent-weight: var(--e-global-typography-accent-font-weight, 500);
 					width: 100%;
 					margin: 1.5em 0;
+					border: 1px solid rgba(84, 89, 95, 0.16);
+					border-radius: 8px;
+					background: var(--wpdm-marking-surface);
 					color: var(--wpdm-marking-text);
 					font-family: var(--wpdm-marking-font), sans-serif;
 					font-size: 16px;
 					font-weight: var(--wpdm-marking-text-weight);
+					overflow: hidden;
 				}
 				.wpdm-marking-areas__title {
 					margin: 0;
-					padding: 0 24px 13px;
-					border-bottom: 1px solid var(--wpdm-marking-primary);
-					color: var(--wpdm-marking-primary);
+					padding: 16px 24px;
+					border-bottom: 3px solid var(--wpdm-marking-primary);
+					background: var(--wpdm-marking-blue-dark);
+					color: var(--wpdm-marking-surface);
 					font-family: var(--wpdm-marking-heading-font), sans-serif;
 					font-size: 16px;
 					line-height: 1.3;
@@ -157,8 +165,9 @@ class WPDM_Marking_Areas {
 					letter-spacing: 0;
 				}
 				.wpdm-marking-areas__summary {
-					padding: 24px 28px 18px;
-					border-bottom: 1px solid var(--wpdm-marking-primary);
+					padding: 18px 24px;
+					border-bottom: 1px solid rgba(84, 89, 95, 0.16);
+					background: var(--wpdm-marking-bg);
 				}
 			.wpdm-marking-areas__summary-row {
 				display: grid;
@@ -175,7 +184,7 @@ class WPDM_Marking_Areas {
 					font-weight: var(--wpdm-marking-text-weight);
 				}
 				.wpdm-marking-areas__summary-row strong {
-					color: var(--wpdm-marking-secondary);
+					color: var(--wpdm-marking-blue-dark);
 					font-weight: var(--wpdm-marking-accent-weight);
 				}
 			.wpdm-marking-area {
@@ -183,11 +192,15 @@ class WPDM_Marking_Areas {
 				grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
 					gap: 28px;
 					align-items: start;
-					padding: 16px 28px 28px;
-					border-bottom: 1px solid var(--wpdm-marking-primary);
+					padding: 22px 24px;
+					border-bottom: 1px solid rgba(84, 89, 95, 0.16);
+					background: var(--wpdm-marking-surface);
+				}
+				.wpdm-marking-area:last-child {
+					border-bottom: none;
 				}
 				.wpdm-marking-area__eyebrow {
-					color: var(--wpdm-marking-primary);
+					color: var(--wpdm-marking-blue);
 					font-family: var(--wpdm-marking-heading-font), sans-serif;
 					font-weight: var(--wpdm-marking-heading-weight);
 					font-size: 14px;
@@ -196,9 +209,11 @@ class WPDM_Marking_Areas {
 				}
 				.wpdm-marking-area__name {
 					margin-top: 4px;
-					color: var(--wpdm-marking-primary);
-					font-size: 14px;
+					color: var(--wpdm-marking-blue-dark);
+					font-family: var(--wpdm-marking-heading-font), sans-serif;
+					font-size: 18px;
 					line-height: 1.35;
+					font-weight: var(--wpdm-marking-heading-weight);
 				}
 			.wpdm-marking-area__meta {
 				display: grid;
@@ -206,6 +221,9 @@ class WPDM_Marking_Areas {
 				gap: 20px;
 				align-items: baseline;
 				margin-top: 18px;
+				padding: 12px 14px;
+				border-left: 4px solid var(--wpdm-marking-primary);
+				background: var(--wpdm-marking-bg);
 			}
 				.wpdm-marking-area__meta span {
 					color: var(--wpdm-marking-secondary);
@@ -213,18 +231,27 @@ class WPDM_Marking_Areas {
 				.wpdm-marking-area__meta strong {
 					text-align: right;
 					font-weight: var(--wpdm-marking-accent-weight);
-					color: var(--wpdm-marking-secondary);
+					color: var(--wpdm-marking-blue-dark);
 				}
 			.wpdm-marking-area__techniques {
 				margin-top: 16px;
 				display: grid;
-				gap: 6px;
+				gap: 0;
+				border: 1px solid rgba(84, 89, 95, 0.16);
+				border-radius: 8px;
+				overflow: hidden;
 			}
 			.wpdm-marking-area__technique {
 				display: grid;
 				grid-template-columns: minmax(220px, 1fr) minmax(120px, 180px);
 				gap: 20px;
 				align-items: baseline;
+				padding: 10px 14px;
+				background: var(--wpdm-marking-surface);
+				border-bottom: 1px solid rgba(84, 89, 95, 0.12);
+			}
+			.wpdm-marking-area__technique:last-child {
+				border-bottom: none;
 			}
 				.wpdm-marking-area__technique-name {
 					color: var(--wpdm-marking-secondary);
@@ -232,7 +259,7 @@ class WPDM_Marking_Areas {
 					text-transform: uppercase;
 				}
 				.wpdm-marking-area__technique-colors {
-					color: var(--wpdm-marking-secondary);
+					color: var(--wpdm-marking-blue-dark);
 					text-align: right;
 					font-weight: var(--wpdm-marking-accent-weight);
 				}
@@ -241,6 +268,10 @@ class WPDM_Marking_Areas {
 				justify-content: center;
 				align-items: flex-start;
 				min-height: 150px;
+				padding: 14px;
+				border: 1px solid rgba(84, 89, 95, 0.16);
+				border-radius: 8px;
+				background: var(--wpdm-marking-bg);
 			}
 			.wpdm-marking-area__image img {
 				display: block;
@@ -251,11 +282,10 @@ class WPDM_Marking_Areas {
 			}
 			@media (max-width: 760px) {
 				.wpdm-marking-areas__title {
-					padding-left: 0;
-					padding-right: 0;
+					padding: 14px 18px;
 				}
 				.wpdm-marking-areas__summary {
-					padding: 20px 0;
+					padding: 16px 18px;
 				}
 				.wpdm-marking-areas__summary-row,
 				.wpdm-marking-area__meta,
@@ -266,7 +296,7 @@ class WPDM_Marking_Areas {
 				.wpdm-marking-area {
 					grid-template-columns: 1fr;
 					gap: 18px;
-					padding: 16px 0 24px;
+					padding: 18px;
 				}
 				.wpdm-marking-area__meta strong,
 				.wpdm-marking-area__technique-colors {

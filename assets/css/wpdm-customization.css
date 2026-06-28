@@ -101,6 +101,33 @@
 	padding: 40px;
 }
 
+.wpdm-customization-button-wrapper .wpdm-btn-personalizar,
+.wpdm-customization-button-wrapper .wpdm-add-customized-to-cart {
+	display: inline-block;
+	padding: 12px 28px;
+	border: none;
+	border-radius: 6px;
+	background-color: var(--e-global-color-primary, #6EC1E4);
+	color: var(--e-global-color-5273eb1, #061B46);
+	font-weight: 600;
+	line-height: 1.2;
+	letter-spacing: 0;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.wpdm-customization-button-wrapper .wpdm-btn-personalizar:hover,
+.wpdm-customization-button-wrapper .wpdm-btn-personalizar:focus,
+.wpdm-customization-button-wrapper .wpdm-add-customized-to-cart:hover,
+.wpdm-customization-button-wrapper .wpdm-add-customized-to-cart:focus {
+	background-color: var(--e-global-color-5273eb1, #061B46);
+	color: var(--e-global-color-1e99445, #FFFFFF);
+	text-decoration: none;
+}
+
 .wpdm-customization-quantity-wrapper {
 	margin-bottom: 30px;
 	padding-bottom: 20px;
@@ -549,6 +576,5 @@ body.wpdm-modal-open {
 		width: 100%;
 	}
 }
-
 
 
