@@ -1,6 +1,6 @@
 ## Woo Prices Dynamics Makito
 
-Versión estable: **3.10.4**
+Versión estable: **4.0.0**
 
 Plugin para WooCommerce que añade precios por tramos, tabla rápida de variaciones y flujo de personalización para productos sincronizados desde Makito u otro panel externo.
 
@@ -76,6 +76,11 @@ La estructura completa de producto está documentada en `includes/GUIA_CREAR_PRO
 
 - Agrupa visualmente variaciones del mismo producto.
 - Separa productos con distintas personalizaciones.
+- Separa correctamente un mismo producto cuando existe una compra sin personalizar y otra personalizada.
+- Muestra etiquetas claras de “Producto personalizado” y “Producto sin personalizar”.
+- Usa loaders visuales para evitar saltos entre la tabla estándar de WooCommerce y la vista agrupada.
+- Muestra totales de carrito y checkout con la estética global de la web.
+- Detalla el importe de personalización por bloque personalizado y suma todas las personalizaciones en el total global.
 - Bloquea cambios de cantidad en productos personalizados para evitar inconsistencias.
 - Guarda los metadatos de tramo y personalización en los ítems de pedido.
 - Incluye metabox de administración para consultar la personalización e imágenes subidas.
@@ -160,4 +165,4 @@ Los shortcodes pueden usarse en plantillas, tabs, widgets o constructores visual
 
 ### Estado
 
-La versión **3.10.4** se considera estable según las pruebas funcionales actuales y lista para subir a GitHub. Se recomienda una revisión más profunda en entorno real antes de una release final de producción.
+La versión **4.0.0** se considera versión estable del flujo completo de producto, personalización, cesta y checkout. Consolida la experiencia visual pública del plugin y queda lista para validación final en entorno real antes de producción.

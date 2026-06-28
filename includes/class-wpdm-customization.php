@@ -1027,6 +1027,7 @@ class WPDM_Customization {
 		// Añadir cada variación al carrito
 		$added_items = array();
 		$total_customization_price = 0;
+		$customization_group_key = md5( wp_json_encode( $customization_data ) . microtime( true ) . wp_rand() );
 
 		foreach ( $variations as $variation_data ) {
 			$variation_id = absint( $variation_data['variation_id'] );
@@ -1235,6 +1236,7 @@ class WPDM_Customization {
 					'grand_total' => $price_result['grand_total'] ?? ( $customization_price + ( $price_result['base_price'] ?? 0 ) )
 				),
 				'wpdm_customization_price' => $customization_price,
+				'wpdm_customization_group_key' => $customization_group_key,
 				'wpdm_variation_info' => array(
 					'color' => $variation_data['color'] ?? '',
 					'size' => $variation_data['size'] ?? '',
@@ -1617,6 +1619,7 @@ class WPDM_Customization {
 			$classes .= ' wpdm-customized-item';
 			$classes .= ' wpdm-customized-' . esc_attr( $mode );
 			$classes .= ' wpdm-product-group-' . esc_attr( $product_id );
+			$classes .= ' wpdm-customization-session-' . sanitize_html_class( self::get_customization_fee_group_key( $cart_item_key, $cart_item ) );
 			
 			// En modo global, añadir clase para agrupar
 			if ( $mode === 'global' && WC()->cart ) {
@@ -1930,7 +1933,16 @@ class WPDM_Customization {
 			position: relative;
 			min-height: 220px;
 		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review {
+			position: relative;
+			min-height: 260px;
+		}
 		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form__contents {
+			opacity: 0;
+			visibility: hidden;
+			pointer-events: none;
+		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table {
 			opacity: 0;
 			visibility: hidden;
 			pointer-events: none;
@@ -1949,10 +1961,38 @@ class WPDM_Customization {
 			border-radius: 50%;
 			animation: wpdm-cart-loader-spin 0.8s linear infinite;
 		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::before {
+			content: "";
+			position: absolute;
+			top: 86px;
+			left: 50%;
+			z-index: 5;
+			width: 46px;
+			height: 46px;
+			margin-left: -23px;
+			border: 4px solid rgba(110, 193, 228, 0.28);
+			border-top-color: var(--e-global-color-5273eb1, #061B46);
+			border-radius: 50%;
+			animation: wpdm-cart-loader-spin 0.8s linear infinite;
+		}
 		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form::after {
 			content: "Preparando carrito...";
 			position: absolute;
 			top: 112px;
+			left: 0;
+			right: 0;
+			z-index: 5;
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.3;
+			text-align: center;
+		}
+		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::after {
+			content: "Preparando pedido...";
+			position: absolute;
+			top: 142px;
 			left: 0;
 			right: 0;
 			z-index: 5;
@@ -1987,10 +2027,50 @@ class WPDM_Customization {
 		}
 		
 		$script_added = true;
+		$checkout_customization_prices = array();
+		$checkout_customization_price_groups = array();
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				if ( empty( $cart_item['wpdm_customization'] ) ) {
+					continue;
+				}
+
+				$customization = $cart_item['wpdm_customization'];
+				$mode = isset( $customization['mode'] ) ? $customization['mode'] : 'global';
+				$product_id = isset( $cart_item['product_id'] ) ? absint( $cart_item['product_id'] ) : 0;
+				$price = isset( $cart_item['wpdm_customization_price'] ) ? floatval( $cart_item['wpdm_customization_price'] ) : 0;
+				$group_key = self::get_customization_fee_group_key( $cart_item_key, $cart_item );
+				$session_key = ! empty( $cart_item['wpdm_customization_group_key'] ) ? sanitize_key( $cart_item['wpdm_customization_group_key'] ) : $group_key;
+				$map_key = $product_id . '_' . $mode . '_' . $session_key;
+
+				if ( ! isset( $checkout_customization_prices[ $map_key ] ) ) {
+					$checkout_customization_prices[ $map_key ] = array(
+						'price' => $price,
+						'price_html' => wc_price( $price ),
+					);
+
+					$aggregate_key = $product_id . '_' . $mode . '_default';
+					if ( ! isset( $checkout_customization_price_groups[ $aggregate_key ] ) ) {
+						$checkout_customization_price_groups[ $aggregate_key ] = 0;
+					}
+					$checkout_customization_price_groups[ $aggregate_key ] += $price;
+				}
+			}
+
+			foreach ( $checkout_customization_price_groups as $aggregate_key => $aggregate_price ) {
+				if ( ! isset( $checkout_customization_prices[ $aggregate_key ] ) ) {
+					$checkout_customization_prices[ $aggregate_key ] = array(
+						'price' => $aggregate_price,
+						'price_html' => wc_price( $aggregate_price ),
+					);
+				}
+			}
+		}
 		?>
 		<script>
 		(function($) {
 			'use strict';
+			var wpdmCheckoutCustomizationPrices = <?php echo wp_json_encode( $checkout_customization_prices ); ?>;
 
 			function setWPDMCartLoading() {
 				$('body').removeClass('wpdm-cart-ready').addClass('wpdm-cart-loading');
@@ -1998,6 +2078,123 @@ class WPDM_Customization {
 
 			function setWPDMCartReady() {
 				$('body').removeClass('wpdm-cart-loading').addClass('wpdm-cart-ready');
+			}
+
+			function cleanCheckoutText(text) {
+				return (text || '').replace(/\s+/g, ' ').trim();
+			}
+
+			function getCheckoutProductName($row) {
+				var $nameCell = $row.find('td.product-name').first().clone();
+				$nameCell.find('.product-quantity').remove();
+				return cleanCheckoutText($nameCell.text());
+			}
+
+			function getCheckoutProductBaseName(productName) {
+				var match = productName.match(/^([^-]+)/);
+				return match && match[1] ? cleanCheckoutText(match[1]) : productName;
+			}
+
+			function getCheckoutCustomizationPriceHtml(productKey, mode, sessionKey) {
+				var directKey = productKey + '_' + mode + '_' + sessionKey;
+				var fallbackKey = productKey + '_' + mode + '_default';
+
+				if (wpdmCheckoutCustomizationPrices[directKey]) {
+					return wpdmCheckoutCustomizationPrices[directKey].price_html;
+				}
+
+				return wpdmCheckoutCustomizationPrices[fallbackKey] ? wpdmCheckoutCustomizationPrices[fallbackKey].price_html : '';
+			}
+
+			function reorganizeCheckoutOrderReview() {
+				var $reviewTable = $('#order_review .woocommerce-checkout-review-order-table');
+
+				if (!$reviewTable.length) {
+					return false;
+				}
+
+				var $tbody = $reviewTable.find('tbody').first();
+				var groups = {};
+
+				$tbody.find('tr.wpdm-checkout-group-row').remove();
+				$tbody.find('tr.cart_item').show().data('wpdm-checkout-reorganized', false);
+
+				$tbody.find('tr.cart_item').each(function() {
+					var $row = $(this);
+					var rowClasses = $row.attr('class') || '';
+					var isCustomized = rowClasses.indexOf('wpdm-customized-item') !== -1 ||
+						rowClasses.indexOf('wpdm-customized-global') !== -1 ||
+						rowClasses.indexOf('wpdm-customized-per-color') !== -1;
+					var productName = getCheckoutProductName($row);
+					var baseName = getCheckoutProductBaseName(productName);
+					var productGroupMatch = rowClasses.match(/wpdm-product-group-(\d+)/);
+					var customizationSessionMatch = rowClasses.match(/wpdm-customization-session-([a-zA-Z0-9_-]+)/);
+					var productKey = productGroupMatch && productGroupMatch[1] ? productGroupMatch[1] : baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+					var mode = rowClasses.indexOf('wpdm-customized-per-color') !== -1 ? 'per-color' : 'global';
+					var sessionKey = customizationSessionMatch && customizationSessionMatch[1] ? customizationSessionMatch[1] : 'default';
+					var groupKey = productKey + (isCustomized ? '_customized_' + sessionKey : '_standard');
+					var quantity = cleanCheckoutText($row.find('.product-quantity').first().text()).replace(/^×\s*/, 'x ');
+					var total = cleanCheckoutText($row.find('td.product-total').first().text());
+
+					if (!groups[groupKey]) {
+						groups[groupKey] = {
+							name: baseName,
+							isCustomized: isCustomized,
+							customizationPriceHtml: isCustomized ? getCheckoutCustomizationPriceHtml(productKey, mode, sessionKey) : '',
+							rows: [],
+							firstRow: $row
+						};
+					}
+
+					groups[groupKey].rows.push({
+						name: productName,
+						quantity: quantity,
+						total: total,
+						row: $row
+					});
+				});
+
+				$.each(groups, function(groupKey, group) {
+					var $groupRow = $('<tr class="wpdm-checkout-group-row"></tr>');
+					var $groupCell = $('<td colspan="2"></td>');
+					var $wrapper = $('<div class="wpdm-checkout-group-wrapper"></div>').addClass(group.isCustomized ? 'wpdm-checkout-group-wrapper-customized' : 'wpdm-checkout-group-wrapper-standard');
+					var $header = $('<div class="wpdm-checkout-group-header"></div>');
+					var $title = $('<span class="wpdm-checkout-group-title"></span>').text(group.name);
+					var $badge = $('<span class="wpdm-checkout-group-badge"></span>')
+						.addClass(group.isCustomized ? 'wpdm-checkout-group-badge-customized' : 'wpdm-checkout-group-badge-standard')
+						.text(group.isCustomized ? 'Producto personalizado' : 'Producto sin personalizar');
+					var $items = $('<div class="wpdm-checkout-group-items"></div>');
+					var $summary = $('<div class="wpdm-checkout-group-summary"></div>');
+
+					$header.append($title, $badge);
+
+					group.rows.forEach(function(item) {
+						var $item = $('<div class="wpdm-checkout-group-item"></div>');
+						var $itemName = $('<div class="wpdm-checkout-group-item-name"></div>').text(item.name);
+						var $itemMeta = $('<div class="wpdm-checkout-group-item-meta"></div>');
+						var $qty = $('<span class="wpdm-checkout-group-item-qty"></span>').text(item.quantity || 'x 1');
+						var $total = $('<span class="wpdm-checkout-group-item-total"></span>').text(item.total);
+
+						$itemMeta.append($qty, $total);
+						$item.append($itemName, $itemMeta);
+						$items.append($item);
+					});
+
+					$wrapper.append($header, $items);
+					if (group.isCustomized && group.customizationPriceHtml) {
+						$summary.append('<span>Personalización</span><strong>' + group.customizationPriceHtml + '</strong>');
+						$wrapper.append($summary);
+					}
+					$groupCell.append($wrapper);
+					$groupRow.append($groupCell);
+					group.firstRow.before($groupRow);
+
+					group.rows.forEach(function(item) {
+						item.row.hide().data('wpdm-checkout-reorganized', true);
+					});
+				});
+
+				return true;
 			}
 
 			function setWPDMCartDeleting(message) {
@@ -3558,6 +3755,8 @@ class WPDM_Customization {
 				try {
 					initWPDMToggles();
 					reorganizeCartItems();
+					reorganizeCheckoutOrderReview();
+					setWPDMCartReady();
 				} catch (error) {
 					console.error('[WPDM Cart] Error durante reorganización:', error);
 					setWPDMCartReady();
@@ -3582,6 +3781,17 @@ class WPDM_Customization {
 				setTimeout(function() {
 					initializeWPDMCart();
 				}, 500);
+			});
+
+			$(document.body).on('update_checkout', function() {
+				setWPDMCartLoading();
+			});
+
+			$(document.body).on('updated_checkout', function() {
+				setTimeout(function() {
+					reorganizeCheckoutOrderReview();
+					setWPDMCartReady();
+				}, 120);
 			});
 			
 			// También escuchar eventos de AJAX de WooCommerce
@@ -3950,6 +4160,399 @@ class WPDM_Customization {
 			color: var(--e-global-color-1e99445, #FFFFFF);
 		}
 
+		.elementor-widget-jet-checkout-billing,
+		.elementor-widget-jet-checkout-additional-form,
+		.elementor-widget-jet-checkout-order-review,
+		.elementor-widget-jet-checkout-payment {
+			margin-bottom: 18px;
+		}
+		.elementor-widget-jet-checkout-billing .woocommerce-billing-fields,
+		.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields,
+		.elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review,
+		.elementor-widget-jet-checkout-payment .woocommerce-checkout-payment {
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-radius: 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			box-shadow: 0 4px 12px rgba(6, 27, 70, 0.08);
+			overflow: hidden;
+		}
+		.elementor-widget-jet-checkout-billing .woocommerce-billing-fields > h3,
+		.elementor-widget-jet-checkout-order-review #order_review_heading,
+		.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields > h3 {
+			margin: 0;
+			padding: 16px 20px;
+			border-bottom: 3px solid var(--e-global-color-primary, #6EC1E4);
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 20px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			line-height: 1.3;
+		}
+		.elementor-widget-jet-checkout-order-review #order_review_heading {
+			border-radius: 8px 8px 0 0;
+		}
+		.elementor-widget-jet-checkout-billing .woocommerce-billing-fields__field-wrapper,
+		.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields__field-wrapper {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0 16px;
+			padding: 18px 20px 20px;
+		}
+		.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields__field-wrapper {
+			display: block;
+		}
+		.elementor-widget-jet-checkout-billing .form-row,
+		.elementor-widget-jet-checkout-additional-form .form-row {
+			margin: 0 0 14px;
+			padding: 0;
+		}
+		.elementor-widget-jet-checkout-additional-form .form-row.notes,
+		.elementor-widget-jet-checkout-additional-form #order_comments_field {
+			width: 100%;
+			margin-bottom: 0;
+		}
+		.elementor-widget-jet-checkout-billing .form-row-first,
+		.elementor-widget-jet-checkout-billing .form-row-last {
+			width: calc(50% - 8px);
+		}
+		.elementor-widget-jet-checkout-billing .form-row-wide,
+		.elementor-widget-jet-checkout-additional-form .form-row-wide {
+			width: 100%;
+		}
+		.elementor-widget-jet-checkout-billing label,
+		.elementor-widget-jet-checkout-additional-form label {
+			display: block;
+			margin: 0 0 7px;
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 13px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.3;
+		}
+		.elementor-widget-jet-checkout-additional-form #order_comments_field label {
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-size: 15px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+		}
+		.elementor-widget-jet-checkout-additional-form .woocommerce-input-wrapper {
+			display: block;
+			width: 100%;
+		}
+		.elementor-widget-jet-checkout-billing .required,
+		.elementor-widget-jet-checkout-additional-form .required {
+			color: var(--e-global-color-90d3021, #0464AC);
+		}
+		.elementor-widget-jet-checkout-billing .input-text,
+		.elementor-widget-jet-checkout-billing select,
+		.elementor-widget-jet-checkout-additional-form .input-text,
+		.elementor-widget-jet-checkout-additional-form textarea,
+		.elementor-widget-jet-checkout-billing .select2-container--default .select2-selection--single {
+			width: 100%;
+			min-height: 42px;
+			border: 1px solid rgba(84, 89, 95, 0.22);
+			border-radius: 4px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			line-height: 1.35;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+		.elementor-widget-jet-checkout-billing .input-text,
+		.elementor-widget-jet-checkout-additional-form .input-text,
+		.elementor-widget-jet-checkout-additional-form textarea {
+			padding: 10px 12px;
+		}
+		.elementor-widget-jet-checkout-additional-form textarea {
+			display: block;
+			width: 100% !important;
+			max-width: 100%;
+			min-height: 128px;
+			resize: vertical;
+		}
+		.elementor-widget-jet-checkout-billing .input-text:focus,
+		.elementor-widget-jet-checkout-additional-form .input-text:focus,
+		.elementor-widget-jet-checkout-additional-form textarea:focus,
+		.elementor-widget-jet-checkout-billing .select2-container--open .select2-selection--single,
+		.elementor-widget-jet-checkout-billing .select2-container--focus .select2-selection--single {
+			outline: none;
+			border-color: var(--e-global-color-90d3021, #0464AC);
+			box-shadow: 0 0 0 3px rgba(110, 193, 228, 0.18);
+		}
+		.elementor-widget-jet-checkout-billing .select2-container--default .select2-selection--single .select2-selection__rendered {
+			padding: 10px 36px 10px 12px;
+			color: var(--e-global-color-5273eb1, #061B46);
+			line-height: 20px;
+		}
+		.elementor-widget-jet-checkout-billing .select2-container--default .select2-selection--single .select2-selection__arrow {
+			height: 42px;
+			right: 8px;
+		}
+		.elementor-widget-jet-checkout-order-review #order_review {
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-top: none;
+			border-radius: 0 0 8px 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			box-shadow: 0 4px 12px rgba(6, 27, 70, 0.08);
+			overflow: hidden;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table {
+			width: 100%;
+			margin: 0;
+			border: none;
+			border-collapse: collapse;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table th,
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table td {
+			padding: 13px 20px;
+			border: none;
+			border-bottom: 1px solid rgba(84, 89, 95, 0.14);
+			background: transparent;
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			line-height: 1.35;
+			vertical-align: middle;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table thead th {
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			text-transform: uppercase;
+			letter-spacing: 0;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table thead {
+			display: none;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .product-total,
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table td:last-child {
+			text-align: right;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .product-quantity {
+			display: inline-flex;
+			align-items: center;
+			min-height: 24px;
+			margin-left: 6px;
+			padding: 3px 8px;
+			border-radius: 4px;
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-size: 12px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .wpdm-checkout-group-row > td {
+			padding: 0;
+			border-bottom: 14px solid var(--e-global-color-1e99445, #FFFFFF);
+			background: transparent;
+		}
+		.wpdm-checkout-group-wrapper {
+			border: 2px solid var(--e-global-color-primary, #6EC1E4);
+			border-radius: 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			overflow: hidden;
+		}
+		.wpdm-checkout-group-wrapper-customized {
+			border-color: var(--e-global-color-90d3021, #0464AC);
+		}
+		.wpdm-checkout-group-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			padding: 10px 14px;
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-checkout-group-wrapper-customized .wpdm-checkout-group-header {
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.wpdm-checkout-group-title {
+			min-width: 0;
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 15px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			line-height: 1.3;
+		}
+		.wpdm-checkout-group-badge {
+			display: inline-flex;
+			align-items: center;
+			min-height: 24px;
+			padding: 4px 10px;
+			border-radius: 4px;
+			font-size: 11px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.2;
+			text-transform: uppercase;
+			white-space: nowrap;
+		}
+		.wpdm-checkout-group-badge-standard {
+			border: 1px solid rgba(6, 27, 70, 0.18);
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-checkout-group-badge-customized {
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-checkout-group-items {
+			display: grid;
+			gap: 8px;
+			padding: 10px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.wpdm-checkout-group-item {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 12px;
+			align-items: center;
+			padding: 10px 12px;
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-radius: 4px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+		}
+		.wpdm-checkout-group-item-name {
+			min-width: 0;
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			line-height: 1.35;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.wpdm-checkout-group-item-meta {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		.wpdm-checkout-group-item-qty {
+			display: inline-flex;
+			align-items: center;
+			min-height: 24px;
+			padding: 3px 8px;
+			border-radius: 4px;
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-90d3021, #0464AC);
+			font-size: 12px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			white-space: nowrap;
+		}
+		.wpdm-checkout-group-item-total {
+			color: var(--e-global-color-90d3021, #0464AC);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 16px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			white-space: nowrap;
+		}
+		.wpdm-checkout-group-summary {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			padding: 12px 14px;
+			border-top: 2px solid var(--e-global-color-90d3021, #0464AC);
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-90d3021, #0464AC);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+		}
+		.wpdm-checkout-group-summary strong {
+			color: var(--e-global-color-90d3021, #0464AC);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 16px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			white-space: nowrap;
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .fee th,
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .fee td {
+			color: var(--e-global-color-90d3021, #0464AC);
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .order-total th,
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .order-total td {
+			border-bottom: none;
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-size: 16px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+		}
+		.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table .order-total strong {
+			font-weight: inherit;
+		}
+		.elementor-widget-jet-checkout-payment .wc_payment_methods {
+			margin: 0;
+			padding: 18px 20px;
+			border: none;
+			border-bottom: 1px solid rgba(84, 89, 95, 0.14);
+			list-style: none;
+		}
+		.elementor-widget-jet-checkout-payment .wc_payment_method > label {
+			display: block;
+			margin: 0 0 10px;
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 16px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+		}
+		.elementor-widget-jet-checkout-payment .payment_box {
+			margin: 0;
+			padding: 14px 16px;
+			border-left: 4px solid var(--e-global-color-primary, #6EC1E4);
+			background: var(--e-global-color-5938fdc, #F1F1F1);
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			line-height: 1.5;
+		}
+		.elementor-widget-jet-checkout-payment .payment_box p {
+			margin: 0;
+		}
+		.elementor-widget-jet-checkout-payment .place-order {
+			margin: 0;
+			padding: 18px 20px 20px;
+		}
+		.elementor-widget-jet-checkout-payment .woocommerce-privacy-policy-text {
+			margin: 0 0 16px;
+			color: var(--e-global-color-text, #7A7A7A);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+		.elementor-widget-jet-checkout-payment .woocommerce-privacy-policy-text p {
+			margin: 0;
+		}
+		.elementor-widget-jet-checkout-payment .woocommerce-privacy-policy-text a {
+			color: var(--e-global-color-90d3021, #0464AC);
+		}
+		.elementor-widget-jet-checkout-payment #place_order {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			min-height: 46px;
+			margin: 0;
+			padding: 13px 18px;
+			border: none;
+			border-radius: 4px;
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+			font-family: var(--e-global-typography-accent-font-family, "Montserrat"), sans-serif;
+			font-size: 14px;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			text-align: center;
+			text-transform: uppercase;
+			letter-spacing: 0;
+			transition: color 0.2s ease, background-color 0.2s ease;
+		}
+		.elementor-widget-jet-checkout-payment #place_order:hover,
+		.elementor-widget-jet-checkout-payment #place_order:focus {
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+		}
+
 		.wpdm-group-title {
 			min-width: 0;
 		}
@@ -4061,6 +4664,38 @@ class WPDM_Customization {
 			.elementor-widget-jet-cart-totals .wc-proceed-to-checkout {
 				padding: 16px 18px 18px;
 			}
+			.elementor-widget-jet-checkout-billing .woocommerce-billing-fields > h3,
+			.elementor-widget-jet-checkout-order-review #order_review_heading,
+			.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields > h3 {
+				padding: 14px 18px;
+				font-size: 18px;
+			}
+			.elementor-widget-jet-checkout-billing .woocommerce-billing-fields__field-wrapper,
+			.elementor-widget-jet-checkout-additional-form .woocommerce-additional-fields__field-wrapper,
+			.elementor-widget-jet-checkout-payment .wc_payment_methods,
+			.elementor-widget-jet-checkout-payment .place-order {
+				padding: 16px 18px 18px;
+			}
+			.elementor-widget-jet-checkout-billing .form-row-first,
+			.elementor-widget-jet-checkout-billing .form-row-last {
+				width: 100%;
+			}
+			.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table th,
+			.elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table td {
+				padding: 12px 18px;
+			}
+			.wpdm-checkout-group-header,
+			.wpdm-checkout-group-item,
+			.wpdm-checkout-group-item-meta {
+				align-items: flex-start;
+				flex-direction: column;
+			}
+			.wpdm-checkout-group-item {
+				display: flex;
+			}
+			.wpdm-checkout-group-item-name {
+				white-space: normal;
+			}
 			.wpdm-customization-details-content {
 				font-size: 0.9em;
 			}
@@ -4102,6 +4737,32 @@ class WPDM_Customization {
 	}
 
 	/**
+	 * Obtener una firma estable para agrupar fees de una misma personalización global.
+	 *
+	 * @param string $cart_item_key Clave del item de carrito.
+	 * @param array  $cart_item     Item del carrito.
+	 *
+	 * @return string
+	 */
+	private static function get_customization_fee_group_key( $cart_item_key, $cart_item ) {
+		if ( ! empty( $cart_item['wpdm_customization_group_key'] ) ) {
+			return sanitize_key( $cart_item['wpdm_customization_group_key'] );
+		}
+
+		$customization = isset( $cart_item['wpdm_customization'] ) && is_array( $cart_item['wpdm_customization'] )
+			? $cart_item['wpdm_customization']
+			: array();
+
+		array_walk_recursive( $customization, function( &$value, $key ) {
+			if ( $key === 'variation_id' ) {
+				$value = '';
+			}
+		} );
+
+		return md5( wp_json_encode( $customization ) . '|' . ( $cart_item['wpdm_customization_price'] ?? '' ) );
+	}
+
+	/**
 	 * Añadir fees de personalización al carrito
 	 * 
 	 * IMPORTANTE: El precio de personalización es FIJO (no se multiplica por cantidad)
@@ -4123,8 +4784,8 @@ class WPDM_Customization {
 				$mode = isset( $customization['mode'] ) ? $customization['mode'] : 'global';
 				
 				if ( $customization_price > 0 ) {
-					// Crear clave única por producto y modo
-					$fee_key = $product_id . '_' . $mode;
+					$fee_group_key = self::get_customization_fee_group_key( $cart_item_key, $cart_item );
+					$fee_key = $product_id . '_' . $mode . '_' . $fee_group_key;
 					
 					// En modo "global", solo añadir el fee UNA VEZ por producto
 					// En modo "per-color", añadir un fee por variación

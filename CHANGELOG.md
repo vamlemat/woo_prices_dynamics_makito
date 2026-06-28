@@ -5,6 +5,49 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [4.0.0] - 2026-06-28
+
+### 🚀 Versión estable del flujo completo
+
+Esta versión consolida el flujo principal del plugin desde la ficha de producto hasta checkout, con una experiencia visual unificada para productos con y sin personalización.
+
+### 🛒 Cesta
+
+- ✅ La cesta mantiene siempre la vista agrupada del plugin, incluso cuando solo hay productos sin personalizar.
+- ✅ Los productos muestran una etiqueta clara de estado: “Producto personalizado” o “Producto sin personalizar”.
+- ✅ El mismo producto puede convivir como bloque sin personalizar y bloque personalizado sin mezclarse.
+- ✅ Los productos con distintas personalizaciones se separan en bloques independientes.
+- ✅ La eliminación de productos agrupados funciona tanto para productos personalizados como sin personalizar.
+- ✅ La confirmación de eliminación usa un modal visual propio siguiendo la estética de la web.
+- ✅ Se añaden loaders visuales al cargar la cesta y al eliminar productos para evitar saltos de CSS y dar feedback al cliente.
+
+### 🧾 Checkout
+
+- ✅ El resumen del pedido adopta el mismo patrón visual de la cesta.
+- ✅ Se ocultan encabezados innecesarios de WooCommerce en el resumen del pedido.
+- ✅ Cada bloque personalizado muestra el importe de su personalización.
+- ✅ La personalización global suma correctamente todas las personalizaciones activas.
+- ✅ El checkout usa loader visual mientras WooCommerce carga y el plugin reorganiza el resumen.
+- ✅ Los campos de facturación, notas del pedido, resumen y pago quedan alineados con la paleta global de Elementor.
+
+### 🎨 Interfaz pública
+
+- ✅ Los botones de añadir al carrito usan los colores globales de Elementor y el hover general de la web.
+- ✅ La tabla de tallas/colores limita su altura con scroll cuando hay más de 7 líneas de variación.
+- ✅ La visualización de áreas de marcaje usa la misma estética global y elimina el título duplicado “Marcaje”.
+
+**Archivos modificados:**
+- `assets/css/wpdm-customization.css`
+- `includes/class-wpdm-customization-frontend.php`
+- `includes/class-wpdm-customization.php`
+- `includes/class-wpdm-marking-areas.php`
+- `includes/class-wpdm-variation-table.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.10.4] - 2026-06-28
 
 ### 🛒 Ajustes de resumen y agrupación de cesta
