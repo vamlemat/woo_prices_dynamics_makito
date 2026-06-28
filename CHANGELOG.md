@@ -5,6 +5,25 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [3.10.2] - 2026-06-28
+
+### 🛒 Mejoras de cesta
+
+- ✅ La vista agrupada del carrito se carga también cuando solo hay productos sin personalizar.
+- ✅ El botón “Eliminar” funciona correctamente para productos sin personalizar agrupados.
+- ✅ Los grupos de carrito muestran una etiqueta clara: “Producto personalizado” o “Producto sin personalizar”.
+- ✅ Los grupos sin personalizar dejan de usar verde y adoptan la paleta global de Elementor.
+- ✅ El subtotal de las tarjetas sin personalizar usa el mismo azul global que los productos personalizados.
+- ✅ La confirmación de eliminación usa un modal visual propio con la estética de la web en lugar del aviso nativo del navegador.
+
+**Archivos modificados:**
+- `includes/class-wpdm-customization.php`
+- `woo-prices-dynamics-makito.php`
+- `README.md`
+- `CHANGELOG.md`
+
+---
+
 ## [3.10.1] - 2026-06-28
 
 ### 🎨 Ajustes visuales de producto y carrito

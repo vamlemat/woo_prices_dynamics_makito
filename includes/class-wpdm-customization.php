@@ -39,6 +39,7 @@ class WPDM_Customization {
 		add_filter( 'woocommerce_cart_item_name', array( __CLASS__, 'add_customization_to_cart_item_name' ), 10, 3 );
 		add_action( 'woocommerce_checkout_create_order_line_item', array( __CLASS__, 'save_customization_to_order' ), 10, 4 );
 		add_filter( 'woocommerce_order_item_get_formatted_meta_data', array( __CLASS__, 'format_order_item_meta' ), 10, 2 );
+		add_action( 'wp_footer', array( __CLASS__, 'enqueue_cart_toggle_script' ), 999 );
 		
 		// Añadir personalización como fee (cargo adicional separado)
 		add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'add_customization_fees_to_cart' ), 20, 1 );
@@ -1918,6 +1919,10 @@ class WPDM_Customization {
 	public static function enqueue_cart_toggle_script() {
 		static $script_added = false;
 		
+		if ( function_exists( 'is_cart' ) && function_exists( 'is_checkout' ) && ! is_cart() && ! is_checkout() ) {
+			return;
+		}
+		
 		if ( $script_added ) {
 			return;
 		}
@@ -1927,6 +1932,74 @@ class WPDM_Customization {
 		<script>
 		(function($) {
 			'use strict';
+
+			function wpdmCartConfirm(options) {
+				var settings = $.extend({
+					title: 'Eliminar producto',
+					message: '¿Deseas eliminar este producto del carrito?',
+					confirmText: 'Eliminar',
+					cancelText: 'Cancelar',
+					showCancel: true
+				}, options || {});
+				var deferred = $.Deferred();
+				var $existing = $('.wpdm-cart-confirm-modal');
+
+				if ($existing.length) {
+					$existing.remove();
+				}
+
+				var $modal = $('<div class="wpdm-cart-confirm-modal" role="dialog" aria-modal="true"></div>');
+				var $dialog = $('<div class="wpdm-cart-confirm-dialog"></div>');
+				var $title = $('<h3 class="wpdm-cart-confirm-title"></h3>').text(settings.title);
+				var $message = $('<p class="wpdm-cart-confirm-message"></p>').text(settings.message);
+				var $actions = $('<div class="wpdm-cart-confirm-actions"></div>');
+				var $cancel = $('<button type="button" class="wpdm-cart-confirm-cancel"></button>').text(settings.cancelText);
+				var $confirm = $('<button type="button" class="wpdm-cart-confirm-submit"></button>').text(settings.confirmText);
+
+				function close(result) {
+					$(document).off('keydown.wpdm-cart-confirm');
+					$modal.removeClass('wpdm-cart-confirm-modal-visible');
+					setTimeout(function() {
+						$modal.remove();
+						deferred.resolve(result);
+					}, 160);
+				}
+
+				if (settings.showCancel) {
+					$actions.append($cancel);
+				}
+				$actions.append($confirm);
+				$dialog.append($title, $message, $actions);
+				$modal.append($dialog);
+				$('body').append($modal);
+
+				setTimeout(function() {
+					$modal.addClass('wpdm-cart-confirm-modal-visible');
+					$confirm.trigger('focus');
+				}, 10);
+
+				$cancel.on('click', function() {
+					close(false);
+				});
+
+				$confirm.on('click', function() {
+					close(true);
+				});
+
+				$modal.on('click', function(e) {
+					if (e.target === $modal[0]) {
+						close(false);
+					}
+				});
+
+				$(document).on('keydown.wpdm-cart-confirm', function(e) {
+					if (e.key === 'Escape') {
+						close(false);
+					}
+				});
+
+				return deferred.promise();
+			}
 			
 			// Función para inicializar los toggles
 			function initWPDMToggles() {
@@ -2588,11 +2661,14 @@ class WPDM_Customization {
 						var $groupCell = $('<td colspan="6" style="padding: 0 !important; border: none !important;"></td>');
 						
 						// Contenedor interno (sin overflow hidden para que los detalles se vean)
-						var $groupInner = $('<div class="wpdm-product-group-wrapper" style="border: 3px solid #0464AC; border-radius: 8px; margin: 15px 0; background: #f8f9ff; overflow: visible; box-shadow: 0 4px 12px rgba(4, 100, 172, 0.15);"></div>');
+						var $groupInner = $('<div class="wpdm-product-group-wrapper wpdm-product-group-wrapper-customized" style="border: 3px solid var(--e-global-color-90d3021, #0464AC); border-radius: 8px; margin: 15px 0; background: var(--e-global-color-1e99445, #fff); overflow: visible; box-shadow: 0 4px 12px rgba(4, 100, 172, 0.15);"></div>');
 						
 						// Header con nombre del producto y botón eliminar
-						var $groupHeader = $('<div class="wpdm-group-header" style="background: linear-gradient(135deg, #0464AC 0%, #053a70 100%); color: #fff; padding: 10px 15px; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between;"></div>');
-						$groupHeader.append('<span>' + productName + '</span>');
+						var $groupHeader = $('<div class="wpdm-group-header" style="background: var(--e-global-color-5273eb1, #061B46); color: var(--e-global-color-1e99445, #fff); padding: 10px 15px; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between; gap: 12px;"></div>');
+						var $groupTitle = $('<span class="wpdm-group-title" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"></span>');
+						$groupTitle.append($('<span></span>').text(productName));
+						$groupTitle.append('<span class="wpdm-group-status-badge wpdm-group-status-badge-customized">Producto personalizado</span>');
+						$groupHeader.append($groupTitle);
 						
 						// Botón eliminar todo el grupo
 						var $deleteAllBtn = $('<button type="button" class="wpdm-delete-all-variations" data-product-id="' + productId + '" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: all 0.2s;">Eliminar ✕</button>');
@@ -3062,12 +3138,15 @@ class WPDM_Customization {
 						var $groupContainer = $('<tr class="wpdm-product-group-container" data-product-id="' + productId + '"></tr>');
 						var $groupCell = $('<td colspan="6" style="padding: 0 !important; border: none !important;"></td>');
 						
-						// Contenedor interno (borde verde para diferenciar)
-						var $groupInner = $('<div class="wpdm-product-group-wrapper" style="border: 3px solid #28a745; border-radius: 8px; margin: 15px 0; background: #f8fff9; overflow: visible; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);"></div>');
+						// Contenedor interno
+						var $groupInner = $('<div class="wpdm-product-group-wrapper wpdm-product-group-wrapper-standard" style="border: 3px solid var(--e-global-color-primary, #6EC1E4); border-radius: 8px; margin: 15px 0; background: var(--e-global-color-1e99445, #fff); overflow: visible; box-shadow: 0 4px 12px rgba(110, 193, 228, 0.2);"></div>');
 						
 						// Header con nombre del producto y botón eliminar (mismo estilo)
-						var $groupHeader = $('<div class="wpdm-group-header" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: #fff; padding: 10px 15px; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between;"></div>');
-						$groupHeader.append('<span>📦 ' + productName + '</span>');
+						var $groupHeader = $('<div class="wpdm-group-header" style="background: var(--e-global-color-primary, #6EC1E4); color: var(--e-global-color-5273eb1, #061B46); padding: 10px 15px; font-weight: 600; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between; gap: 12px;"></div>');
+						var $groupTitle = $('<span class="wpdm-group-title" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"></span>');
+						$groupTitle.append($('<span></span>').text(productName));
+						$groupTitle.append('<span class="wpdm-group-status-badge wpdm-group-status-badge-standard">Producto sin personalizar</span>');
+						$groupHeader.append($groupTitle);
 						
 						// Botón eliminar todo el grupo
 						var $deleteAllBtn = $('<button type="button" class="wpdm-delete-all-variations" data-product-id="' + productId + '" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: all 0.2s;">Eliminar ✕</button>');
@@ -3088,7 +3167,7 @@ class WPDM_Customization {
 							
 							// Hover effect
 							$variationCard.hover(
-								function() { $(this).css({'background': '#f9f9f9', 'border-color': '#28a745'}); },
+								function() { $(this).css({'background': 'var(--e-global-color-5938fdc, #F1F1F1)', 'border-color': 'var(--e-global-color-90d3021, #0464AC)'}); },
 								function() { $(this).css({'background': '#fff', 'border-color': '#e0e0e0'}); }
 							);
 							
@@ -3135,7 +3214,7 @@ class WPDM_Customization {
 							
 							// Total
 							var total = $item.find('.product-subtotal').text().trim();
-							$infoContainer.append($('<div style="font-weight: 600; color: #28a745; font-size: 1em; margin-top: 3px; text-align: right; padding-top: 3px; border-top: 1px solid #e0e0e0;">').text(total));
+							$infoContainer.append($('<div style="font-weight: 600; color: var(--e-global-color-90d3021, #0464AC); font-size: 1em; margin-top: 3px; text-align: right; padding-top: 3px; border-top: 1px solid #e0e0e0;">').text(total));
 							
 							$variationCard.append($infoContainer);
 							$variationsGrid.append($variationCard);
@@ -3173,6 +3252,44 @@ class WPDM_Customization {
 			
 			// NOTA: La edición de cantidad está deshabilitada para productos sin personalizar.
 			// Si el cliente desea cambiar la cantidad, debe eliminar el producto y volver a añadirlo.
+
+			function removeCartGroupItemsWithConfirm(groupItems, message) {
+				wpdmCartConfirm({
+					title: 'Eliminar producto',
+					message: message,
+					confirmText: 'Eliminar',
+					cancelText: 'Cancelar'
+				}).done(function(confirmed) {
+					if (!confirmed) {
+						return;
+					}
+
+					var removed = 0;
+					var totalItems = groupItems.length;
+
+					groupItems.each(function() {
+						var $item = $(this);
+						var $itemRemoveLink = $item.find('.remove, a[href*="remove_item"]').first();
+
+						if ($itemRemoveLink.length) {
+							var removeUrl = $itemRemoveLink.attr('href');
+							if (removeUrl) {
+								$.get(removeUrl).always(function() {
+									removed++;
+									if (removed === totalItems) {
+										window.location.reload();
+									}
+								});
+							}
+						} else {
+							removed++;
+							if (removed === totalItems) {
+								window.location.reload();
+							}
+						}
+					});
+				});
+			}
 			
 			// Botón eliminar todas las variaciones del grupo
 			$(document).on('click', '.wpdm-delete-all-variations', function(e) {
@@ -3184,15 +3301,23 @@ class WPDM_Customization {
 				
 				// Buscar los items originales del carrito (pueden estar ocultos)
 				var groupItems = $('.wpdm-product-group-' + productId);
+
+				if (groupItems.length === 0) {
+					groupItems = $('tbody tr.cart_item, .woocommerce-cart-form__cart-item.cart_item').filter(function() {
+						var $row = $(this);
+						var $removeLink = $row.find('.remove, a[href*="remove_item"]').first();
+
+						if (!$removeLink.length) {
+							return false;
+						}
+
+						return String($removeLink.data('product_id')) === String(productId);
+					});
+				}
 				
 				console.log('[WPDM Cart] Eliminar todas las variaciones. Product ID:', productId, 'Items encontrados:', groupItems.length);
 				
 				if (groupItems.length > 0) {
-					// Confirmar eliminación de todo el grupo
-					if (!confirm('¿Deseas eliminar todas las variaciones de este producto del carrito?')) {
-						return false;
-					}
-					
 					// Obtener todos los cart_item_keys de los items originales (incluso si están ocultos)
 					var removeUrls = [];
 					groupItems.each(function() {
@@ -3215,7 +3340,12 @@ class WPDM_Customization {
 					
 					if (removeUrls.length === 0) {
 						console.error('[WPDM Cart] No se encontraron URLs de eliminación');
-						alert('Error: No se pudieron encontrar las variaciones para eliminar.');
+						wpdmCartConfirm({
+							title: 'No se pudo eliminar',
+							message: 'No se pudieron encontrar las variaciones para eliminar. Recarga la página e inténtalo de nuevo.',
+							confirmText: 'Entendido',
+							showCancel: false
+						});
 						return false;
 					}
 					
@@ -3246,11 +3376,24 @@ class WPDM_Customization {
 						});
 					}
 					
-					// Iniciar eliminación
-					removeNext();
+					wpdmCartConfirm({
+						title: 'Eliminar producto',
+						message: '¿Deseas eliminar todas las variaciones de este producto del carrito?',
+						confirmText: 'Eliminar',
+						cancelText: 'Cancelar'
+					}).done(function(confirmed) {
+						if (confirmed) {
+							removeNext();
+						}
+					});
 				} else {
 					console.error('[WPDM Cart] No se encontraron items del grupo para eliminar');
-					alert('Error: No se encontraron variaciones para eliminar.');
+					wpdmCartConfirm({
+						title: 'No se pudo eliminar',
+						message: 'No se encontraron variaciones para eliminar. Recarga la página e inténtalo de nuevo.',
+						confirmText: 'Entendido',
+						showCancel: false
+					});
 				}
 				
 				return false;
@@ -3268,38 +3411,12 @@ class WPDM_Customization {
 					var groupItems = $('.wpdm-product-group-' + productId);
 					
 					if (groupItems.length > 1) {
-						// Confirmar eliminación de todo el grupo
-						if (!confirm('Este producto tiene múltiples variaciones con personalización global. ¿Deseas eliminar todas las variaciones del grupo?')) {
-							e.preventDefault();
-							e.stopPropagation();
-							return false;
-						}
-						
-						// Eliminar todas las variaciones del grupo
-						var removed = 0;
-						var totalItems = groupItems.length;
-						
-						groupItems.each(function() {
-							var $item = $(this);
-							var $itemRemoveLink = $item.find('.remove, a[href*="remove_item"]').first();
-							
-							if ($itemRemoveLink.length) {
-								var removeUrl = $itemRemoveLink.attr('href');
-								if (removeUrl) {
-									// Hacer petición para eliminar cada item
-									$.get(removeUrl).done(function() {
-										removed++;
-										if (removed === totalItems) {
-											// Recargar carrito después de eliminar todos
-											window.location.reload();
-										}
-									});
-								}
-							}
-						});
-						
 						e.preventDefault();
 						e.stopPropagation();
+						removeCartGroupItemsWithConfirm(
+							groupItems,
+							'Este producto tiene múltiples variaciones con personalización global. ¿Deseas eliminar todas las variaciones del grupo?'
+						);
 						return false;
 					}
 				} else {
@@ -3311,38 +3428,12 @@ class WPDM_Customization {
 						var groupItems = $('.wpdm-product-group-' + productId);
 						
 						if (groupItems.length > 1) {
-							// Confirmar eliminación de todo el grupo
-							if (!confirm('Este producto tiene múltiples variaciones con personalización global. ¿Deseas eliminar todas las variaciones del grupo?')) {
-								e.preventDefault();
-								e.stopPropagation();
-								return false;
-							}
-							
-							// Eliminar todas las variaciones del grupo
-							var removed = 0;
-							var totalItems = groupItems.length;
-							
-							groupItems.each(function() {
-								var $item = $(this);
-								var $itemRemoveLink = $item.find('.remove, a[href*="remove_item"]').first();
-								
-								if ($itemRemoveLink.length) {
-									var removeUrl = $itemRemoveLink.attr('href');
-									if (removeUrl) {
-										// Hacer petición para eliminar cada item
-										$.get(removeUrl).done(function() {
-											removed++;
-											if (removed === totalItems) {
-												// Recargar carrito después de eliminar todos
-												window.location.reload();
-											}
-										});
-									}
-								}
-							});
-							
 							e.preventDefault();
 							e.stopPropagation();
+							removeCartGroupItemsWithConfirm(
+								groupItems,
+								'Este producto tiene múltiples variaciones con personalización global. ¿Deseas eliminar todas las variaciones del grupo?'
+							);
 							return false;
 						}
 					}
@@ -3534,6 +3625,120 @@ class WPDM_Customization {
 		.wpdm-toggle-details-btn:active {
 			transform: translateY(0);
 		}
+
+		.wpdm-cart-confirm-modal {
+			position: fixed;
+			inset: 0;
+			z-index: 999999;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			background: rgba(6, 27, 70, 0.58);
+			opacity: 0;
+			visibility: hidden;
+			transition: opacity 0.16s ease, visibility 0.16s ease;
+		}
+		.wpdm-cart-confirm-modal-visible {
+			opacity: 1;
+			visibility: visible;
+		}
+		.wpdm-cart-confirm-dialog {
+			width: min(460px, 100%);
+			border: 1px solid rgba(84, 89, 95, 0.16);
+			border-radius: 8px;
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			box-shadow: 0 18px 50px rgba(6, 27, 70, 0.28);
+			overflow: hidden;
+			transform: translateY(8px);
+			transition: transform 0.16s ease;
+		}
+		.wpdm-cart-confirm-modal-visible .wpdm-cart-confirm-dialog {
+			transform: translateY(0);
+		}
+		.wpdm-cart-confirm-title {
+			margin: 0;
+			padding: 16px 20px;
+			border-bottom: 3px solid var(--e-global-color-primary, #6EC1E4);
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+			font-family: var(--e-global-typography-primary-font-family, "Montserrat"), sans-serif;
+			font-size: 18px;
+			font-weight: var(--e-global-typography-primary-font-weight, 600);
+			line-height: 1.3;
+		}
+		.wpdm-cart-confirm-message {
+			margin: 0;
+			padding: 22px 20px 6px;
+			color: var(--e-global-color-secondary, #54595F);
+			font-family: var(--e-global-typography-text-font-family, "Montserrat"), sans-serif;
+			font-size: 15px;
+			line-height: 1.5;
+		}
+		.wpdm-cart-confirm-actions {
+			display: flex;
+			justify-content: flex-end;
+			gap: 10px;
+			padding: 18px 20px 20px;
+		}
+		.wpdm-cart-confirm-actions button {
+			min-height: 38px;
+			padding: 9px 16px;
+			border-radius: 4px;
+			font-family: var(--e-global-typography-accent-font-family, "Montserrat"), sans-serif;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			text-transform: uppercase;
+			letter-spacing: 0;
+			cursor: pointer;
+			transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+		}
+		.wpdm-cart-confirm-cancel {
+			border: 1px solid rgba(84, 89, 95, 0.22);
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			color: var(--e-global-color-secondary, #54595F);
+		}
+		.wpdm-cart-confirm-cancel:hover,
+		.wpdm-cart-confirm-cancel:focus {
+			border-color: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-cart-confirm-submit {
+			border: 1px solid var(--e-global-color-primary, #6EC1E4);
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-cart-confirm-submit:hover,
+		.wpdm-cart-confirm-submit:focus {
+			border-color: var(--e-global-color-5273eb1, #061B46);
+			background: var(--e-global-color-5273eb1, #061B46);
+			color: var(--e-global-color-1e99445, #FFFFFF);
+		}
+
+		.wpdm-group-title {
+			min-width: 0;
+		}
+		.wpdm-group-status-badge {
+			display: inline-flex;
+			align-items: center;
+			min-height: 24px;
+			padding: 4px 10px;
+			border-radius: 4px;
+			font-size: 0.72em;
+			font-weight: var(--e-global-typography-accent-font-weight, 500);
+			line-height: 1.2;
+			text-transform: uppercase;
+			letter-spacing: 0;
+			white-space: nowrap;
+		}
+		.wpdm-group-status-badge-customized {
+			background: var(--e-global-color-primary, #6EC1E4);
+			color: var(--e-global-color-5273eb1, #061B46);
+		}
+		.wpdm-group-status-badge-standard {
+			background: var(--e-global-color-1e99445, #FFFFFF);
+			color: var(--e-global-color-5273eb1, #061B46);
+			border: 1px solid rgba(6, 27, 70, 0.18);
+		}
 		
 		/* Agrupación visual de items personalizados en modo global */
 		.wpdm-customized-group-first {
@@ -3601,6 +3806,13 @@ class WPDM_Customization {
 				width: 100%;
 				margin-top: 8px !important;
 				margin-left: 0 !important;
+			}
+			.wpdm-group-header {
+				align-items: flex-start !important;
+				flex-direction: column !important;
+			}
+			.wpdm-group-status-badge {
+				white-space: normal;
 			}
 			.wpdm-customization-details-content {
 				font-size: 0.9em;

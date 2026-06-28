@@ -3,7 +3,7 @@
  * Plugin Name:       Woo Prices Dynamics Makito
  * Plugin URI:        https://github.com/vamlemat/publicmar-estructura
  * Description:       Precios por tramos, tabla de variaciones y flujo de personalización para productos WooCommerce sincronizados desde Makito u otros paneles externos.
- * Version:           3.10.1
+ * Version:           3.10.2
  * Author:            atech / vamlemat
  * Text Domain:       woo-prices-dynamics-makito
  * Requires at least: 5.0
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Definir constantes básicas del plugin.
 if ( ! defined( 'WPDM_WOOPRICES_VERSION' ) ) {
-	define( 'WPDM_WOOPRICES_VERSION', '3.10.1' );
+	define( 'WPDM_WOOPRICES_VERSION', '3.10.2' );
 }
 
 if ( ! defined( 'WPDM_WOOPRICES_PLUGIN_FILE' ) ) {

@@ -1,6 +1,6 @@
 ## Woo Prices Dynamics Makito
 
-Versión estable: **3.10.1**
+Versión estable: **3.10.2**
 
 Plugin para WooCommerce que añade precios por tramos, tabla rápida de variaciones y flujo de personalización para productos sincronizados desde Makito u otro panel externo.
 
@@ -160,4 +160,4 @@ Los shortcodes pueden usarse en plantillas, tabs, widgets o constructores visual
 
 ### Estado
 
-La versión **3.10.1** se considera estable según las pruebas funcionales actuales y lista para subir a GitHub. Se recomienda una revisión más profunda en entorno real antes de una release final de producción.
+La versión **3.10.2** se considera estable según las pruebas funcionales actuales y lista para subir a GitHub. Se recomienda una revisión más profunda en entorno real antes de una release final de producción.
