@@ -56,7 +56,7 @@ get_header();
 .wc-pantone-section{border-top:1px solid #e5e7eb;padding:14px 18px;display:none}
 .wc-pantone-section.show{display:block}
 .wc-palette{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
-.wc-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.wc-swatch{width:32px;height:32px;border-radius:0 50% 50% 50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
 .wc-swatch:hover,.wc-swatch.sel{transform:scale(1.2);border-color:#0464AC;box-shadow:0 2px 6px rgba(4,100,172,.3)}
 .wc-pantone-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;padding:2px;border-radius:6px}
 .wc-pantone-row.active{background:rgba(4,100,172,.08);box-shadow:0 0 0 1px rgba(4,100,172,.2)}
@@ -69,25 +69,25 @@ get_header();
 .wc-img-preview img{max-width:160px;border-radius:6px;border:1px solid #ddd}
 .wc-rm-img{margin-top:6px;padding:4px 10px;background:#dc3545;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.8rem}
 /* RIGHT */
-.wc-right{}
-.wc-quote{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:sticky;top:20px}
-.wc-quote-head{background:linear-gradient(135deg,#0464AC,#061B46);color:#fff;padding:16px 20px}
-.wc-quote-head h3{margin:0;font-size:1rem;font-weight:700}
-.wc-quote-body{padding:18px}
-.wc-quote-product{font-weight:700;font-size:.95rem;margin-bottom:12px;color:#111}
-.wc-quote-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:14px}
-.wc-quote-table th{text-align:left;padding:5px 6px;border-bottom:2px solid #e5e7eb;color:#6b7280;font-weight:600;font-size:.75rem;text-transform:uppercase}
-.wc-quote-table td{padding:5px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top}
-.wc-quote-area-row td{background:#f8f9fa;font-weight:600;color:#374151}
-.wc-quote-sub{color:#6b7280;font-size:.78rem}
-.wc-quote-total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:2px solid #0464AC;margin-top:8px;font-weight:700;font-size:1rem;color:#0464AC}
-.wc-quote-grand{background:#f0f7ff;border-radius:8px;padding:10px 14px;text-align:center;margin-bottom:14px}
-.wc-quote-grand .label{font-size:.8rem;color:#555;text-transform:uppercase;letter-spacing:.5px}
-.wc-quote-grand .amount{font-size:2rem;font-weight:800;color:#0464AC;line-height:1.1}
-.wc-btn-cart{display:block;width:100%;padding:14px;font-size:1rem;font-weight:700;background:#0464AC;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background .2s}
-.wc-btn-cart:hover{background:#061B46}
+.wc-right{position:sticky;top:20px;align-self:start;z-index:10}
+.wc-quote{background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:calc(100vh - 40px);display:flex;flex-direction:column}
+.wc-quote-head{background:#003366;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:10px}
+.wc-quote-head h3{margin:0;font-size:1.1rem;font-weight:600;color:#fff!important}
+.wc-quote-body{padding:18px;color:#333;overflow-y:auto}
+.wc-quote-product{font-weight:700;font-size:1rem;margin-bottom:14px;color:#111}
+.wc-quote-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:14px}
+.wc-quote-table th{text-align:left;padding:6px;color:#6b7280;font-weight:600;font-size:.75rem;text-transform:uppercase}
+.wc-quote-table td{padding:6px;border-bottom:1px solid #f3f4f6;vertical-align:top;color:#333}
+.wc-quote-area-row td{background:#f8f9fa;font-weight:700;color:#003366;border-bottom:1px solid #e5e7eb}
+.wc-quote-total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;font-weight:700;font-size:1rem;color:#003366}
+.wc-quote-grand{background:#f0f7ff;border-radius:6px;padding:16px;text-align:center;margin-bottom:16px}
+.wc-quote-grand .label{font-size:.85rem;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.wc-quote-grand .amount{font-size:1.8rem;font-weight:800;color:#003366;line-height:1}
+.wc-quote-grand .per-unit{font-size:.9rem;color:#666;margin-top:6px;font-weight:600}
+.wc-btn-cart{display:block;width:100%;padding:14px;font-size:1rem;font-weight:700;background:#0066cc;color:#fff!important;border:none;border-radius:6px;cursor:pointer;transition:background .2s}
+.wc-btn-cart:hover{background:#0052a3}
 .wc-btn-cart:disabled{opacity:.4;cursor:not-allowed}
-.wc-btn-back{display:block;width:100%;padding:12px;font-size:.9rem;font-weight:600;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;margin-bottom:10px;text-decoration:none;text-align:center}
+.wc-btn-back{display:block;width:100%;padding:12px;font-size:.95rem;font-weight:600;background:#f3f4f6;color:#374151!important;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;margin-bottom:12px;text-decoration:none;text-align:center}
 .wc-loading-quote{text-align:center;padding:20px;color:#9ca3af;font-size:.9rem}
 .wc-no-areas-msg{text-align:center;padding:30px;color:#9ca3af;font-size:.85rem}
 .wc-cart-notice{display:none;align-items:center;gap:14px;margin:0 0 18px;padding:14px 18px;border-radius:4px;background:#46b450;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -97,6 +97,7 @@ get_header();
 .wc-cart-notice-message{flex:1;font-size:.95rem;line-height:1.35}
 .wc-cart-notice a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .wc-cart-notice-close{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:0;margin-left:4px}
+@media(max-width:900px){.wc-right{top:10px}.wc-quote{max-height:calc(100vh - 20px)}}
 @media(max-width:640px){.wc-cart-notice{align-items:flex-start}.wc-cart-notice a{white-space:normal}}
 </style>
 
@@ -136,7 +137,10 @@ get_header();
     <!-- COLUMNA DERECHA: COTIZACIÓN -->
     <div class="wc-right">
       <div class="wc-quote">
-        <div class="wc-quote-head"><h3>💶 Cotización</h3></div>
+        <div class="wc-quote-head">
+          <span style="font-size:1.4rem">💶</span>
+          <h3>Cotización</h3>
+        </div>
         <div class="wc-quote-body">
           <div class="wc-quote-product"><?php echo $product ? esc_html($product->get_name()) : ''; ?></div>
           <div id="wc-quote-no-sel" class="wc-no-areas-msg">Activa y configura una zona de impresión para ver el precio.</div>
@@ -147,17 +151,22 @@ get_header();
                 <thead><tr><th>Descripción</th><th>Uds</th><th>€/u</th><th>Sub</th></tr></thead>
                 <tbody id="wc-quote-rows"></tbody>
               </table>
-              <div class="wc-quote-total-row"><span>Total personalización</span><span id="wc-cust-total">0,00 €</span></div>
+              <div class="wc-quote-total-row" style="border-top:1px solid #003366">
+                <span>Total personalización</span>
+                <span id="wc-cust-total">0,00 €</span>
+              </div>
             </div>
-            <div class="wc-quote-grand" style="margin-top:12px">
-              <div class="label">Total (impuestos no incluidos)</div>
+            
+            <div class="wc-quote-grand" style="margin-top:20px">
+              <div class="label">TOTAL (IMPUESTOS NO INCLUIDOS)</div>
               <div class="amount" id="wc-grand-total">0,00 €</div>
+              <div class="per-unit" id="wc-grand-unit-price" style="display:none">0,00 € / unidad</div>
             </div>
           </div>
           <?php if($product): ?>
           <a href="<?php echo esc_url(get_permalink($product->get_id())); ?>" class="wc-btn-back">← Atrás</a>
           <?php endif; ?>
-          <button type="button" id="wc-btn-cart" class="wc-btn-cart" disabled>🛒 Finalizar pedido</button>
+          <button type="button" id="wc-btn-cart" class="wc-btn-cart" disabled>🛒 Confirmar pedido</button>
         </div>
       </div>
     </div>
@@ -176,13 +185,22 @@ var selectedVariations=[];
 try{var s=sessionStorage.getItem('wpdm_selected_variations_'+productId);if(s)selectedVariations=JSON.parse(s);}catch(e){}
 
 var palette=[
-  {name:'Negro',hex:'#000000',p:'Black C'},{name:'Blanco',hex:'#FFFFFF',p:'White C'},
-  {name:'Gris Osc.',hex:'#666666',p:'Cool Gray 11 C'},{name:'Gris Cl.',hex:'#D3D3D3',p:'Cool Gray 3 C'},
-  {name:'Rojo',hex:'#FF0000',p:'Red 032 C'},{name:'Rosa',hex:'#FF1493',p:'Pink C'},
-  {name:'Granate',hex:'#8B0000',p:'Rhodamine Red C'},{name:'Naranja',hex:'#FF8C00',p:'Orange 021 C'},
-  {name:'Amarillo',hex:'#FFD700',p:'Yellow C'},{name:'Verde',hex:'#008000',p:'Green C'},
-  {name:'Verde Osc.',hex:'#006400',p:'Green 356 C'},{name:'Azul',hex:'#0000FF',p:'Blue 072 C'},
-  {name:'Azul Osc.',hex:'#00008B',p:'Blue 286 C'},{name:'Marrón',hex:'#8B4513',p:'Brown 478 C'}
+  {name:'Negro',hex:'#000000',p:'BLACK C'},
+  {name:'Gris',hex:'#888B8D',p:'COOL GRAY 8 C'},
+  {name:'Blanco',hex:'#FFFFFF',p:'WHITE C'},
+  {name:'Rojo',hex:'#DA291C',p:'485 C'},
+  {name:'Rosa',hex:'#DF1995',p:'225 C'},
+  {name:'Granate',hex:'#9D2235',p:'201 C'},
+  {name:'Azul Reflex',hex:'#001489',p:'REFLEX BLUE C'},
+  {name:'Azul Claro',hex:'#0077C8',p:'3005 C'},
+  {name:'Azul Marino',hex:'#00205B',p:'281 C'},
+  {name:'Amarillo',hex:'#FFD100',p:'109 C'},
+  {name:'Naranja',hex:'#FE5000',p:'021 C'},
+  {name:'Verde',hex:'#00843D',p:'348 C'},
+  {name:'Verde Oscuro',hex:'#154734',p:'3435 C'},
+  {name:'Marrón',hex:'#774321',p:'725 C'},
+  {name:'Oro',hex:'#8B6F4E',p:'GOLD 873 C'},
+  {name:'Plata',hex:'#8A8D8F',p:'PLATA 877 C'}
 ];
 
 function showLoading(){$('#wc-loading').show();$('#wc-error,#wc-no-areas,#wc-main').hide();}
@@ -194,7 +212,7 @@ function showCartNotice(message,isError){
   $notice.toggleClass('error',!!isError).addClass('show');
   $notice.find('.wc-cart-notice-icon').text(isError?'!':'✓');
   $notice.find('.wc-cart-notice-message').text(message);
-  $notice.find('.wc-cart-notice-link').toggle(!isError);
+  $notice.find('.wc-cart-notice-link').hide(); /* Ocultamos el link manual */
   $('html,body').animate({scrollTop:$notice.offset().top-20},250);
 }
 
@@ -410,9 +428,21 @@ function calcPrice(){
     customization_data:JSON.stringify(cusData)
   },success:function(r){
     $('#wc-loading-quote').hide();
-    if(!r.success||!r.data){return;}
     var d=r.data;
     var rows='';
+    var basePriceStr = parseFloat(d.base_price||0).toFixed(3).replace('.',',');
+
+    /* Prendas */
+    if(selectedVariations && selectedVariations.length){
+      selectedVariations.forEach(function(v){
+         if(v.quantity > 0) {
+           var sub = (parseFloat(d.base_price||0) * v.quantity).toFixed(2).replace('.',',');
+           rows+='<tr><td>'+(v.full_name||'Unidades')+'</td><td>'+v.quantity+'</td><td>'+basePriceStr+' €</td><td>'+sub+' €</td></tr>';
+         }
+      });
+    }
+
+    /* Personalización */
     if(d.areas){
       $.each(d.areas,function(i,ap){
         var aIdx=parseInt(i);
@@ -451,11 +481,16 @@ function calcPrice(){
         $card.find('.wc-price-info').show();
       });
     }
-    var grandTotal=parseFloat(d.grand_total||0).toFixed(2).replace('.',',');
+    var grandTotalVal=parseFloat(d.grand_total||0);
+    var grandTotal=grandTotalVal.toFixed(2).replace('.',',');
     var custTotal=parseFloat(d.customization_total||0).toFixed(2).replace('.',',');
+    var perUnitVal = totalQty>0 ? (grandTotalVal / totalQty) : 0;
+    var perUnitStr = perUnitVal.toFixed(2).replace('.',',');
+
     $('#wc-quote-rows').html(rows);
     $('#wc-cust-total').text(custTotal+' €');
     $('#wc-grand-total').text(grandTotal+' €');
+    $('#wc-grand-unit-price').text(perUnitStr+' € / ud.').show();
     $('#wc-quote-detail').show();
     $('#wc-btn-cart').data('cus-data',cusData).data('total-qty',totalQty);
   },error:function(){$('#wc-loading-quote').hide();}});
@@ -521,16 +556,19 @@ function doAddToCart(){
 	    success:function(r){
 	      if(r.success){
 	        $('body').trigger('wc_fragment_refresh');
-	        showCartNotice((r.data&&r.data.message)?r.data.message:'Producto añadido al carrito correctamente.',false);
-	        $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	        showCartNotice((r.data&&r.data.message)?r.data.message:'Producto añadido al carrito correctamente. Redirigiendo...',false);
+	        $btn.prop('disabled',true).text('Redirigiendo...');
+            setTimeout(function(){
+              window.location.href = cartUrl;
+            }, 1200);
 	      } else {
 	        showCartNotice((r.data&&r.data.message?r.data.message:'Error al añadir al carrito.'),true);
-	        $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	        $btn.prop('disabled',false).text('🛒 Confirmar pedido');
 	      }
 	    },
 	    error:function(){
 	      showCartNotice('Error de conexión.',true);
-	      $btn.prop('disabled',false).text('🛒 Finalizar pedido');
+	      $btn.prop('disabled',false).text('🛒 Confirmar pedido');
 	    }
 	  });
 	}

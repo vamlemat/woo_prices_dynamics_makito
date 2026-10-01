@@ -84,22 +84,12 @@ class WPDM_Marking_Areas {
 					$area_number = $index + 1;
 					$size_text   = self::format_area_size( $area );
 					$image_url   = self::get_area_image_url( $area['area_img'] );
+					$area_name   = $area['position'] !== '' ? $area['position'] : sprintf( __( 'Area %d', 'woo-prices-dynamics-makito' ), $area_number );
 					?>
 					<article class="wpdm-marking-area">
 						<div class="wpdm-marking-area__info">
-							<div class="wpdm-marking-area__eyebrow">
-								<?php
-								echo esc_html(
-									sprintf(
-										/* translators: %d: area number */
-										__( 'AREA %d', 'woo-prices-dynamics-makito' ),
-										$area_number
-									)
-								);
-								?>
-							</div>
 							<div class="wpdm-marking-area__name">
-								<?php echo esc_html( $area['position'] !== '' ? $area['position'] : sprintf( __( 'Area %d', 'woo-prices-dynamics-makito' ), $area_number ) ); ?>
+								<?php echo esc_html( $area_name ); ?>
 							</div>
 
 							<div class="wpdm-marking-area__meta">
@@ -119,7 +109,7 @@ class WPDM_Marking_Areas {
 
 						<?php if ( $image_url !== '' ) : ?>
 							<div class="wpdm-marking-area__image">
-								<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $area['position'] ); ?>" loading="lazy">
+								<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $area_name ); ?>" loading="lazy">
 							</div>
 						<?php endif; ?>
 					</article>
@@ -199,16 +189,8 @@ class WPDM_Marking_Areas {
 				.wpdm-marking-area:last-child {
 					border-bottom: none;
 				}
-				.wpdm-marking-area__eyebrow {
-					color: var(--wpdm-marking-blue);
-					font-family: var(--wpdm-marking-heading-font), sans-serif;
-					font-weight: var(--wpdm-marking-heading-weight);
-					font-size: 14px;
-					line-height: 1.25;
-					text-transform: uppercase;
-				}
 				.wpdm-marking-area__name {
-					margin-top: 4px;
+					margin-top: 0;
 					color: var(--wpdm-marking-blue-dark);
 					font-family: var(--wpdm-marking-heading-font), sans-serif;
 					font-size: 18px;

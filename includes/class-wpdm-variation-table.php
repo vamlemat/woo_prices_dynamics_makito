@@ -516,7 +516,7 @@ class WPDM_Variation_Table {
 			}
 
 			.wpdm-variation-table-container-scroll {
-				max-height: 660px;
+				max-height: 420px;
 				overflow: auto;
 				border-radius: 8px;
 				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -542,26 +542,57 @@ class WPDM_Variation_Table {
 			}
 			
 			.wpdm-variation-table th {
-					padding: 14px 12px;
-					text-align: center;
-					font-family: var(--wpdm-font-primary), sans-serif;
-					font-weight: var(--wpdm-font-accent-weight);
-				font-size: 0.9em;
+				padding: 4px 10px !important;
+				text-align: center;
+				font-family: var(--wpdm-font-primary), sans-serif;
+				font-weight: var(--wpdm-font-accent-weight);
+				font-size: 13px !important;
+				line-height: 1 !important;
 				color: var(--wpdm-color-white);
 				text-transform: uppercase;
 				letter-spacing: 0;
 				border-right: 1px solid rgba(255, 255, 255, 0.2);
+				white-space: nowrap;
 			}
 
 			.wpdm-variation-table-container-scroll .wpdm-variation-table thead th {
 				position: sticky;
 				top: 0;
 				z-index: 3;
+				background: linear-gradient(135deg, var(--wpdm-color-blue-dark) 0%, var(--wpdm-color-blue-darker) 100%);
+			}
+
+			/* Primera columna sticky */
+			.wpdm-variation-table-container-scroll .wpdm-variation-table .wpdm-table-row-label {
+				position: sticky;
+				left: 0;
+				z-index: 2;
+				background: var(--wpdm-color-bg-light);
+			}
+
+			/* Celda esquina (header + primera columna) */
+			.wpdm-variation-table-container-scroll .wpdm-variation-table thead th:first-child {
+				z-index: 4;
+				background: linear-gradient(135deg, var(--wpdm-color-blue-dark) 0%, var(--wpdm-color-blue-darker) 100%);
+			}
+
+			/* Fila de totales sticky al fondo */
+			.wpdm-variation-table-container-scroll .wpdm-table-totals-row td:first-child {
+				position: sticky;
+				left: 0;
+				z-index: 2;
+				background: var(--wpdm-color-bg-light);
 			}
 			
+			/* Celda esquina COLOR\TALLA */
 			.wpdm-variation-table th.wpdm-table-header-col {
-				padding: 12px 8px;
+				padding: 4px 6px !important;
 				vertical-align: middle;
+				white-space: nowrap;
+				min-width: auto;
+				max-width: none;
+				font-size: 12px !important;
+				line-height: 1 !important;
 			}
 			
 			.wpdm-color-header {
@@ -569,8 +600,8 @@ class WPDM_Variation_Table {
 				flex-direction: column;
 				align-items: center;
 				justify-content: center;
-				gap: 8px;
-				padding: 8px 4px;
+				gap: 3px;
+				padding: 2px 2px;
 			}
 			
 			.wpdm-color-image {
@@ -578,10 +609,12 @@ class WPDM_Variation_Table {
 				height: <?php echo esc_attr( $swatch_size ); ?>px;
 				border-radius: 50%;
 				object-fit: cover;
-				border: 3px solid rgba(255, 255, 255, 0.4);
-				box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+				border: 2px solid rgba(255, 255, 255, 0.4);
+				box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 				transition: transform 0.2s ease, box-shadow 0.2s ease;
 				flex-shrink: 0;
+				max-width: 26px;
+				max-height: 26px;
 			}
 			
 			.wpdm-color-image:hover {
@@ -593,11 +626,13 @@ class WPDM_Variation_Table {
 				width: <?php echo esc_attr( $swatch_size ); ?>px;
 				height: <?php echo esc_attr( $swatch_size ); ?>px;
 				border-radius: 50%;
-				border: 3px solid rgba(255, 255, 255, 0.4);
-				box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+				border: 2px solid rgba(255, 255, 255, 0.4);
+				box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 				display: block;
 				flex-shrink: 0;
-				transition: transform 0.2s ease, box-shadow 0.2s ease;
+				transition: transform 0.2s ease;
+				max-width: 26px;
+				max-height: 26px;
 			}
 			
 			.wpdm-color-swatch:hover {
@@ -606,14 +641,15 @@ class WPDM_Variation_Table {
 			}
 			
 			.wpdm-color-name {
-				font-size: 0.65em;
+				font-size: 0.62em;
 				font-weight: 400;
-				line-height: 1.3;
+				line-height: 1.2;
 				color: rgba(255, 255, 255, 0.9);
 				text-align: center;
-				margin-top: 2px;
+				margin-top: 1px;
 				word-break: break-word;
-				max-width: 100%;
+				max-width: 60px;
+			}
 			}
 			
 			.wpdm-variation-table th:last-child {
@@ -639,11 +675,12 @@ class WPDM_Variation_Table {
 			}
 			
 			.wpdm-variation-table td {
-				padding: 12px;
+				padding: 2px 8px !important;
 				border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 				border-right: 1px solid rgba(0, 0, 0, 0.08);
 				text-align: center;
-				font-size: 0.9em;
+				font-size: 13px !important;
+				line-height: 1 !important;
 				color: var(--wpdm-color-secondary);
 			}
 			
@@ -657,52 +694,65 @@ class WPDM_Variation_Table {
 				font-weight: 500;
 				text-align: left;
 				color: var(--wpdm-color-secondary);
-				min-width: 180px;
+				min-width: 100px;
+				max-width: 130px;
 				vertical-align: middle;
-				padding: 12px 16px;
+				padding: 4px 6px !important;
 			}
 			
 			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-header {
 				display: flex;
 				flex-direction: row;
 				align-items: center;
-				gap: 12px;
+				gap: 6px;
 				justify-content: flex-start;
 			}
 			
 			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-image,
 			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-swatch {
 				flex-shrink: 0;
+				width: 20px !important;
+				height: 20px !important;
 			}
 			
 			.wpdm-variation-table .wpdm-table-row-label .wpdm-color-name {
-				font-size: 0.70em;
-				font-weight: 500;
+				font-size: 13px !important;
+				line-height: 1 !important;
+				font-weight: 600;
 				color: var(--wpdm-color-secondary);
 				text-align: left;
+				text-transform: uppercase;
+				letter-spacing: 0.3px;
+				white-space: nowrap;
 			}
 			
 			.wpdm-variation-table .wpdm-table-cell {
-				min-width: 90px;
+				min-width: 58px;
 			}
 			
 			.wpdm-variation-table .wpdm-cell-content {
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				gap: 4px;
+				justify-content: center;
+				gap: 2px;
 			}
 			
 			.wpdm-variation-table .wpdm-table-qty-input {
-				width: 70px;
-				padding: 8px;
+				width: 48px !important;
+				height: 26px !important;
+				min-height: 26px !important;
+				padding: 0 4px !important;
+				margin: 0 !important;
 				text-align: center;
 				border: 1px solid rgba(0, 0, 0, 0.15);
 				border-radius: 4px;
-				font-size: 0.9em;
+				font-size: 13px !important;
+				line-height: 24px !important;
 				transition: all 0.2s ease;
 				background: var(--wpdm-color-white);
 				color: var(--wpdm-color-secondary);
+				box-sizing: border-box !important;
 			}
 			
 			.wpdm-variation-table .wpdm-table-qty-input:focus {
@@ -716,11 +766,12 @@ class WPDM_Variation_Table {
 			}
 			
 			.wpdm-variation-table .wpdm-stock-info {
-				font-size: 0.65em;
+				font-size: 11px !important;
 				text-align: center;
-				margin-top: 2px;
-				line-height: 1.2;
+				line-height: 1 !important;
 				font-weight: 500;
+				margin: 0 !important;
+				padding: 0 !important;
 			}
 			
 			.wpdm-variation-table .wpdm-stock-info.wpdm-stock-high {

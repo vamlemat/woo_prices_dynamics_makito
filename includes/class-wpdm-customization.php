@@ -1929,30 +1929,36 @@ class WPDM_Customization {
 		document.documentElement.classList.add('wpdm-cart-js');
 		</script>
 		<style>
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form {
+		body:not(.wpdm-cart-ready) .woocommerce-cart-form,
+		body:not(.wpdm-cart-ready) .woocommerce {
 			position: relative;
 			min-height: 220px;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review {
+		body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review {
 			position: relative;
 			min-height: 260px;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form__contents {
-			opacity: 0;
-			visibility: hidden;
-			pointer-events: none;
+		body:not(.wpdm-cart-ready) .woocommerce-cart-form,
+		body:not(.wpdm-cart-ready) .wp-block-woocommerce-cart,
+		body:not(.wpdm-cart-ready) .wc-block-cart,
+		body:not(.wpdm-cart-ready) .woocommerce-checkout-review-order-table,
+		body:not(.wpdm-cart-ready) .elementor-widget-jet-cart-table {
+			opacity: 0 !important;
+			visibility: hidden !important;
+			pointer-events: none !important;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table {
-			opacity: 0;
-			visibility: hidden;
-			pointer-events: none;
+		body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .woocommerce-checkout-review-order-table > * {
+			display: none !important; opacity: 0 !important;
+			visibility: hidden !important;
+			pointer-events: none !important;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form::before {
+		body:not(.wpdm-cart-ready)::before {
 			content: "";
-			position: absolute;
-			top: 56px;
+			position: fixed;
+			top: 40%;
 			left: 50%;
-			z-index: 5;
+			margin-top: -23px;
+			z-index: 99999;
 			width: 46px;
 			height: 46px;
 			margin-left: -23px;
@@ -1961,7 +1967,7 @@ class WPDM_Customization {
 			border-radius: 50%;
 			animation: wpdm-cart-loader-spin 0.8s linear infinite;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::before {
+		body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::before {
 			content: "";
 			position: absolute;
 			top: 86px;
@@ -1975,10 +1981,11 @@ class WPDM_Customization {
 			border-radius: 50%;
 			animation: wpdm-cart-loader-spin 0.8s linear infinite;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .woocommerce-cart-form::after {
+		body:not(.wpdm-cart-ready)::after {
 			content: "Preparando carrito...";
-			position: absolute;
-			top: 112px;
+			position: fixed;
+			top: calc(40% + 50px);
+			z-index: 99999;
 			left: 0;
 			right: 0;
 			z-index: 5;
@@ -1989,7 +1996,7 @@ class WPDM_Customization {
 			line-height: 1.3;
 			text-align: center;
 		}
-		html.wpdm-cart-js body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::after {
+		body:not(.wpdm-cart-ready) .elementor-widget-jet-checkout-order-review .elementor-jet-checkout-order-review::after {
 			content: "Preparando pedido...";
 			position: absolute;
 			top: 142px;
@@ -2394,6 +2401,7 @@ class WPDM_Customization {
 			
 			// Reorganizar visualmente los items del carrito (SIEMPRE para productos variables)
 			function reorganizeCartItems() {
+				var deferred = $.Deferred();
 				console.log('[WPDM Cart] Iniciando reorganización del carrito...');
 				
 				// Limpiar grupos anteriores
@@ -3535,8 +3543,10 @@ class WPDM_Customization {
 						$groupContainer.data('wpdm-reorganized', true);
 					}
 				});
-					setWPDMCartReady();
+					deferred.resolve();
 				} // Fin de processCustomizedGroups()
+				
+				return deferred.promise();
 			}
 			
 			// NOTA: La edición de cantidad está deshabilitada para productos sin personalizar.
@@ -3754,14 +3764,22 @@ class WPDM_Customization {
 				
 				try {
 					initWPDMToggles();
-					reorganizeCartItems();
-					reorganizeCheckoutOrderReview();
-					setWPDMCartReady();
+					
+					var cartPromise = reorganizeCartItems();
+					
+					$.when(cartPromise).done(function() {
+						reorganizeCheckoutOrderReview();
+						setWPDMCartReady();
+					}).fail(function() {
+						setWPDMCartReady();
+					}).always(function() {
+						setTimeout(function() {
+							isReorganizing = false;
+						}, 1000);
+					});
 				} catch (error) {
 					console.error('[WPDM Cart] Error durante reorganización:', error);
 					setWPDMCartReady();
-				} finally {
-					// Liberar flag después de un delay
 					setTimeout(function() {
 						isReorganizing = false;
 					}, 1000);
@@ -3904,7 +3922,7 @@ class WPDM_Customization {
 		.wpdm-customization-details-content.wpdm-details-hidden {
 			display: none !important;
 			visibility: hidden !important;
-			opacity: 0 !important;
+			display: none !important; opacity: 0 !important;
 			height: 0 !important;
 			overflow: hidden !important;
 			margin: 0 !important;
